@@ -19,12 +19,24 @@ dependencies:
   firebase_core_platform_interface: ^5.0.0
 
 dev_dependencies:
+
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^6.0.0
+
+  flutter_launcher_icons: ^0.9.2
 
 flutter:
   uses-material-design: true
 
   assets:
+    - assets/flowers/homeScreen/flowersCategories.png
+    - assets/flowers/homeScreen/sweetsCategories.png
+    - assets/flowers/homeScreen/plantsCategories.png
+    - assets/flowers/homeScreen/bearCategories.png
+    - assets/flowers/homeScreen/balloonsCategories.png
+    - assets/flowers/homeScreen/AIFlorist.png
+    - assets/flowers/homeScreen/bouquetCrafting.png
+    - assets/flowers/homeScreen/Ranunculuses.jpg
+    - assets/flowers/signInScreen/
     - assets/flowers/
