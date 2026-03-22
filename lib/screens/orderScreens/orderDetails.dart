@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'courierComment.dart';
+
 class OrderDetailsScreen extends StatefulWidget {
   const OrderDetailsScreen({super.key});
 
@@ -11,6 +13,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   // ✅ Переменные для выбора
   int _selectedDeliveryIndex = 0;
   int _selectedPaymentIndex = 0;
+  String _courierComment = 'Add';
 
   // Данные доставки
   final List<Map<String, String>> _deliveryOptions = [
@@ -93,8 +96,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  // ... (_buildInfoSection, _buildInfoRow без изменений) ...
-
   Widget _buildInfoSection() {
     return Column(
       children: [
@@ -104,41 +105,65 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         const Divider(height: 1),
         _buildInfoRow('Apt./Office/Floor/Entrance', 'Apt. 510 /...'),
         const Divider(height: 1),
-        _buildInfoRow('Comment for the courier', 'Add', isAddable: true),
+        _buildInfoRow(
+          'Comment for the courier',
+          _courierComment.isEmpty ? 'Add' : _courierComment,
+          isAddable: true,
+        ),
       ],
     );
   }
 
   Widget _buildInfoRow(String label, String value, {bool isAddable = false}) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          Row(
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: isAddable ? Colors.grey[700] : Colors.black,
-                  fontWeight: isAddable ? FontWeight.w400 : FontWeight.w500,
-                ),
+    return GestureDetector(
+      onTap: isAddable ? () => _showCourierComment() : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-            ],
-          ),
-        ],
+            ),
+            Row(
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: isAddable ? Colors.grey[700] : Colors.black,
+                    fontWeight: isAddable ? FontWeight.w400 : FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+              ],
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+// Метод для показа модального окна
+  void _showCourierComment() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => const CourierCommentSheet(),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        _courierComment = result;
+      });
+      print('💬 Courier comment: $result');
+    }
   }
 
   // ✅ Доставка с кликабельными элементами
