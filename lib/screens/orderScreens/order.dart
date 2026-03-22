@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'orderDetails.dart';
 
 class OrderScreen extends StatelessWidget {
   const OrderScreen({super.key});
@@ -11,7 +12,7 @@ class OrderScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
@@ -388,7 +389,12 @@ class OrderScreen extends StatelessWidget {
       child: SafeArea(
         child: ElevatedButton(
           onPressed: () {
-            // Переход к деталям заказа
+            Navigator.push(
+              context,
+                MaterialPageRoute(
+                  builder: (context) => OrderDetailsScreen(),
+                ),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFB07183),
