@@ -18,6 +18,8 @@ dependencies:
   firebase_auth: ^4.16.0
   firebase_core_platform_interface: ^5.0.0
 
+  google_sign_in: ^7.2.0
+
 dev_dependencies:
 
   flutter_test:
@@ -39,4 +41,5 @@ flutter:
     - assets/flowers/homeScreen/bouquetCrafting.png
     - assets/flowers/homeScreen/Ranunculuses.jpg
     - assets/flowers/signInScreen/
+    - assets/flowers/flowersCategory/
     - assets/flowers/

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'flowerCategory.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -24,7 +26,7 @@ class HomeScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min, // ВАЖНО!
                     children: [
                       // Категории
-                      _buildCategories(),
+                      _buildCategories(context),
                       const SizedBox(height: 20),
 
                       // Карточки AI Florist и Bouquet crafting
@@ -82,7 +84,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCategories() {
+  Widget _buildCategories(BuildContext context) {
     return SizedBox(
       height: 98,
       child: ListView(
@@ -90,58 +92,102 @@ class HomeScreen extends StatelessWidget {
         physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          _buildCategoryItem('Flowers', Colors.purple[100]!, 'assets/flowers/homeScreen/flowersCategories.png'),
-          _buildCategoryItem('Sweets', Colors.pink[100]!, 'assets/flowers/homeScreen/sweetsCategories.png'),
-          _buildCategoryItem('Plants', Colors.green[100]!, 'assets/flowers/homeScreen/plantsCategories.png'),
-          _buildCategoryItem('Bears', Colors.blue[100]!, 'assets/flowers/homeScreen/bearCategories.png'),
-          _buildCategoryItem('Balloons', Colors.orange[100]!, 'assets/flowers/homeScreen/balloonsCategories.png'),
+          _buildCategoryItem('Flowers', Colors.purple[100]!, 'assets/flowers/homeScreen/flowersCategories.png', context),
+          _buildCategoryItem('Sweets', Colors.pink[100]!, 'assets/flowers/homeScreen/sweetsCategories.png', context),
+          _buildCategoryItem('Plants', Colors.green[100]!, 'assets/flowers/homeScreen/plantsCategories.png', context),
+          _buildCategoryItem('Bears', Colors.blue[100]!, 'assets/flowers/homeScreen/bearCategories.png', context),
+          _buildCategoryItem('Balloons', Colors.orange[100]!, 'assets/flowers/homeScreen/balloonsCategories.png', context),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(String name, Color color, String imagePath) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        children: [
-          Container(
-            height: 70,
-            width: 70,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  // Если изображение не найдено, показываем цветной контейнер с иконкой
-                  return Container(
-                    color: color,
-                    child: const Icon(
-                      Icons.local_florist,
-                      color: Colors.white70,
-                      size: 30,
-                    ),
-                  );
-                },
+  Widget _buildCategoryItem(String name, Color color, String imagePath, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _navigateToCategory(name, context);
+      },
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          children: [
+            Container(
+              height: 70,
+              width: 70,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: color,
+                      child: const Icon(
+                        Icons.local_florist,
+                        color: Colors.white70,
+                        size: 30,
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            name,
-            style: const TextStyle(fontSize: 12),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const SizedBox(height: 6),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 12,
+                color: name == 'Flowers' ? const Color(0xFFFF67B3) : const Color(0xFF333333),
+                fontWeight: name == 'Flowers' ? FontWeight.w600 : FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+// Функция навигации (добавьте в класс _CatalogScreenState)
+  void _navigateToCategory(String category, BuildContext context) {
+    switch (category) {
+      case 'Flowers':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FlowerCategoryScreen()),
+        );
+        break;
+      // case 'Sweets':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),
+      //   );
+      //   break;
+      // case 'Plants':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const PlantsCategoryScreen()),
+      //   );
+      //   break;
+      // case 'Bears':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const BearsCategoryScreen()),
+      //   );
+      //   break;
+      // case 'Balloons':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const BalloonsCategoryScreen()),
+      //   );
+      //   break;
+    }
   }
 
   Widget _buildFeatureCards()  {
@@ -401,8 +447,8 @@ class HomeScreen extends StatelessWidget {
                   begin: Alignment.bottomCenter,
                   end: Alignment.topCenter,
                   colors: [
-                    Colors.black.withOpacity(0.7), // Темный снизу
-                    Colors.black.withOpacity(0.3), // Прозрачнее в середине
+                    Colors.black.withValues(alpha: 0.7), // Темный снизу
+                    Colors.black.withValues(alpha: 0.3), // Прозрачнее в середине
                     Colors.transparent, // Полностью прозрачный сверху
                   ],
                 ),
