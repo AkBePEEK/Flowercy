@@ -560,21 +560,54 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _buildNavItem(Icons.local_florist, 'Главная', true),
-          _buildNavItem(Icons.search, '', false),
-          _buildNavItem(Icons.favorite_border, '', false),
-          _buildNavItem(Icons.shopping_bag_outlined, '', false),
-          _buildNavItem(Icons.person_outline, '', false),
+          _buildNavItem(
+            Image.asset(
+              "assets/flowers/homeActive.png",
+              width: 24,
+              height: 24,
+            ),
+            'Main',
+            true,
+          ),
+          _buildNavItem(
+            const Icon(Icons.search, size: 24),
+            '',
+            false,
+          ),
+          _buildNavItem(
+            const Icon(Icons.favorite_border, size: 24),
+            '',
+            false,
+          ),
+          _buildNavItem(
+            const Icon(Icons.shopping_bag_outlined, size: 24),
+            '',
+            false,
+          ),
+          _buildNavItem(
+            const Icon(Icons.person_outline, size: 24),
+            '',
+            false,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, bool isActive) {
+  Widget _buildNavItem(Widget icon, String label, bool isActive) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: isActive ? Colors.pink : Colors.grey, size: 24),
+        // Применяем цвет только к иконкам, изображение остаётся как есть
+        isActive
+            ? icon
+            : ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            Colors.grey,
+            BlendMode.srcIn,
+          ),
+          child: icon,
+        ),
         if (label.isNotEmpty) ...[
           const SizedBox(height: 4),
           Text(
