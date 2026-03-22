@@ -44,3 +44,5 @@ flutter:
     - assets/flowers/flowersCategory/
     - assets/flowers/products/
     - assets/flowers/logo.png
+    - assets/flowers/homeActive.png
+    - assets/flowers/homeInActive.png

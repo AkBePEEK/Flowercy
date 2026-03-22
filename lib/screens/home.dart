@@ -44,7 +44,6 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(child: _buildBottomNav()),
     );
   }
 
@@ -549,76 +548,4 @@ class HomeScreen extends StatelessWidget {
   //     ),
   //   );
   // }
-
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildNavItem(
-            Image.asset(
-              "assets/flowers/homeActive.png",
-              width: 24,
-              height: 24,
-            ),
-            'Main',
-            true,
-          ),
-          _buildNavItem(
-            const Icon(Icons.search, size: 24),
-            '',
-            false,
-          ),
-          _buildNavItem(
-            const Icon(Icons.favorite_border, size: 24),
-            '',
-            false,
-          ),
-          _buildNavItem(
-            const Icon(Icons.shopping_bag_outlined, size: 24),
-            '',
-            false,
-          ),
-          _buildNavItem(
-            const Icon(Icons.person_outline, size: 24),
-            '',
-            false,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(Widget icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Применяем цвет только к иконкам, изображение остаётся как есть
-        isActive
-            ? icon
-            : ColorFiltered(
-          colorFilter: ColorFilter.mode(
-            Colors.grey,
-            BlendMode.srcIn,
-          ),
-          child: icon,
-        ),
-        if (label.isNotEmpty) ...[
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 10,
-              color: isActive ? Colors.pink : Colors.grey,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
 }
