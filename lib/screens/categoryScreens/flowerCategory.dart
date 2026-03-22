@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../home.dart';
-import '../../widgets/flowerCatalogHeader.dart'; // <-- Импорт нового виджета
+import '../../widgets/flowerCatalogHeader.dart';
 
 class FlowerCategoryScreen extends StatefulWidget {
   const FlowerCategoryScreen({super.key});
@@ -11,6 +11,8 @@ class FlowerCategoryScreen extends StatefulWidget {
 
 class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   String _selectedCategory = 'Flowers';
+  bool _showFlowerFilterModal = false;
+  int _currentFilterTab = 0;
 
   final Map<String, List<Map<String, dynamic>>> _shopsByCategory = {
     'Flowers': [
@@ -22,12 +24,12 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
         'reviews': 711,
         'delivery': 'Free',
         'products': [
-          {'price': '14 500 ₸', 'image': 'assets/products/bouquet1.png'},
-          {'price': '7 000 ₸', 'image': 'assets/products/bouquet2.png'},
-          {'price': '22 000 ₸', 'image': 'assets/products/bouquet3.png'},
-          {'price': '24 000 ₸', 'image': 'assets/products/bouquet4.png'},
-          {'price': '32 500 ₸', 'image': 'assets/products/bouquet5.png'},
-          {'price': '19 500 ₸', 'image': 'assets/products/bouquet6.png'},
+          {'price': '14 500 ₸', 'image': 'assets/flowers/products/bouquet1.png'},
+          {'price': '7 000 ₸', 'image': 'assets/flowers/products/bouquet2.png'},
+          {'price': '22 000 ₸', 'image': 'assets/flowers/products/bouquet3.png'},
+          {'price': '24 000 ₸', 'image': 'assets/flowers/products/bouquet4.png'},
+          {'price': '32 500 ₸', 'image': 'assets/flowers/products/bouquet5.png'},
+          {'price': '19 500 ₸', 'image': 'assets/flowers/products/bouquet6.png'},
         ],
       },
     ],
@@ -70,51 +72,267 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
     // Добавьте остальные категории по аналогии...
   };
 
+  final List<Map<String, dynamic>> _includedFlowers = [
+    {'name': 'Roses', 'selected': false},
+    {'name': 'Tulips', 'selected': false},
+    {'name': 'Peonies', 'selected': false},
+    {'name': 'Peony roses', 'selected': false},
+    {'name': 'Chrysanthemums', 'selected': false},
+    {'name': 'Alstroemerias', 'selected': false},
+    {'name': 'Amaryllis', 'selected': false},
+    {'name': 'Anemones', 'selected': false},
+    {'name': 'Asters', 'selected': false},
+    {'name': 'Cornflowers', 'selected': false},
+    {'name': 'Carnations', 'selected': false},
+  ];
+
+  final List<Map<String, dynamic>> _excludedFlowers = [
+    {'name': 'Roses', 'selected': false},
+    {'name': 'Tulips', 'selected': false},
+    {'name': 'Peonies', 'selected': false},
+    {'name': 'Peony roses', 'selected': false},
+    {'name': 'Chrysanthemums', 'selected': false},
+    {'name': 'Alstroemerias', 'selected': false},
+    {'name': 'Amaryllis', 'selected': false},
+    {'name': 'Anemones', 'selected': false},
+    {'name': 'Asters', 'selected': false},
+    {'name': 'Cornflowers', 'selected': false},
+    {'name': 'Carnations', 'selected': false},
+  ];
+
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ✅ Реюзабельный хедер (всё выше — в одном виджете!)
-            FlowerCatalogHeader(
-              title: 'Flowers and bouquets',
-              onBackTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const HomeScreen()),
-              ),
-              onFilterTap: () {
-                // Логика открытия фильтра
-                print('Фильтр нажат');
-              },
-              onCategoryTap: (category) {
-                setState(() {
-                  _selectedCategory = category;
-                });
-                print('Выбрана категория: $category');
-              },
-              selectedCategory: _selectedCategory,
-            ),
-
-            // ✅ Уникальный контент только для этой страницы
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-                    _buildShopsSection(), // <-- Только это осталось в экране
-                    const SizedBox(height: 100),
-                  ],
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Column(
+              children: [
+                FlowerCatalogHeader(
+                  title: _selectedCategory == 'Flowers'
+                      ? 'Flowers and bouquets'
+                      : _selectedCategory,
+                  onBackTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  ),
+                  onCategoryTap: (category) {
+                    setState(() => _selectedCategory = category);
+                  },
+                  onFlowerTypeTap: () {
+                    setState(() => _showFlowerFilterModal = true);
+                  },
+                  selectedCategory: _selectedCategory,
                 ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 8),
+                        _buildShopsSection(),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_showFlowerFilterModal) ...[
+            GestureDetector(
+              onTap: () => setState(() => _showFlowerFilterModal = false),
+              child: Container(color: Colors.black.withValues(alpha: 0.5)),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                ),
+                child: _buildFlowerFilterModal(),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
+  }
+
+  Widget _buildFlowerFilterModal() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => _showFlowerFilterModal = false),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 16),
+              const Text(
+                'Included flowers',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _currentFilterTab = 0),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: _currentFilterTab == 0
+                              ? const Color(0xFFB07183)
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'Includes',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _currentFilterTab == 0
+                            ? const Color(0xFFB07183)
+                            : Colors.grey,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _currentFilterTab = 1),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: _currentFilterTab == 1
+                              ? const Color(0xFFB07183)
+                              : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'Excludes',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _currentFilterTab == 1
+                            ? const Color(0xFFB07183)
+                            : Colors.grey,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Expanded(
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: _currentFilterTab == 0
+                ? _includedFlowers.length
+                : _excludedFlowers.length,
+            separatorBuilder: (_, __) => const Divider(height: 1),
+            itemBuilder: (context, index) {
+              final flowers = _currentFilterTab == 0
+                  ? _includedFlowers
+                  : _excludedFlowers;
+              return _buildFlowerFilterItem(flowers[index]);
+            },
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            child: ElevatedButton(
+              onPressed: () {
+                _applyFlowerFilters();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFB07183),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Apply filters',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFlowerFilterItem(Map<String, dynamic> flower) {
+    return CheckboxListTile(
+      value: flower['selected'],
+      onChanged: (value) {
+        setState(() => flower['selected'] = value ?? false);
+      },
+      title: Text(
+        flower['name'],
+        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      ),
+      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      activeColor: const Color(0xFFB07183),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    );
+  }
+
+  void _applyFlowerFilters() {
+    final List<String> selectedIncluded = _includedFlowers
+        .where((f) => f['selected'] == true)
+        .map((f) => f['name'] as String)
+        .toList();
+
+    final List<String> selectedExcluded = _excludedFlowers
+        .where((f) => f['selected'] == true)
+        .map((f) => f['name'] as String)
+        .toList();
+
+    print('Included: $selectedIncluded');
+    print('Excluded: $selectedExcluded');
+
+    setState(() => _showFlowerFilterModal = false);
   }
   // Секция магазинов и товаров
   Widget _buildShopsSection() {
@@ -149,7 +367,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '5 shops nearby',
+            '1 shop nearby',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
