@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
 
 class FlowerCatalogHeader extends StatelessWidget {
+  // ✅ Статический список категорий по умолчанию
+  static const List<Map<String, String>> defaultCategories = [
+    {'name': 'Flowers', 'image': 'assets/flowers/flowersCategory/flowers.png'},
+    {'name': 'Monobouquets', 'image': 'assets/flowers/flowersCategory/monobouquets.png'},
+    {'name': 'Signature', 'image': 'assets/flowers/flowersCategory/signature.png'},
+    {'name': 'By the stem', 'image': 'assets/flowers/flowersCategory/byTheStem.png'},
+    {'name': 'In a box', 'image': 'assets/flowers/flowersCategory/inBox.png'},
+    {'name': 'In a basket', 'image': 'assets/flowers/flowersCategory/inBasket.png'},
+    {'name': 'Bridal', 'image': 'assets/flowers/flowersCategory/bridal.png'},
+    {'name': 'In a wood box', 'image': 'assets/flowers/flowersCategory/inWoodBox.png'},
+  ];
+
+  // ✅ Статический список фильтров по умолчанию
+  static const List<String> defaultFilters = [
+    'Price',
+    'Free delivery',
+    'Flowers type',
+    'Delivery time',
+    'Color',
+  ];
+
   final String title;
   final VoidCallback? onBackTap;
   final VoidCallback? onFilterTap;
   final ValueChanged<String>? onCategoryTap;
-  final List<Map<String, String>> categories;
-  final List<String> filters;
+  final String? selectedCategory;
+
+  // ✅ Опциональные параметры (если не переданы — используются default)
+  final List<Map<String, String>>? categories;
+  final List<String>? filters;
 
   const FlowerCatalogHeader({
     super.key,
@@ -14,9 +38,14 @@ class FlowerCatalogHeader extends StatelessWidget {
     this.onBackTap,
     this.onFilterTap,
     this.onCategoryTap,
-    required this.categories,
-    required this.filters,
+    this.selectedCategory,
+    this.categories,      // <-- nullable
+    this.filters,         // <-- nullable
   });
+
+  // ✅ Геттеры для получения данных (переданные или дефолтные)
+  List<Map<String, String>> get _categories => categories ?? defaultCategories;
+  List<String> get _filters => filters ?? defaultFilters;
 
   @override
   Widget build(BuildContext context) {
@@ -73,9 +102,8 @@ class FlowerCatalogHeader extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(4, (index) {
               return _buildCategoryItem(
-                categories[index]['name']!,
-                categories[index]['image']!,
-                isPink: index == 0 && title.contains('Flowers'),
+                _categories[index]['name']!,
+                _categories[index]['image']!,
               );
             }),
           ),
@@ -85,8 +113,8 @@ class FlowerCatalogHeader extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(4, (index) {
               return _buildCategoryItem(
-                categories[index + 4]['name']!,
-                categories[index + 4]['image']!,
+                _categories[index + 4]['name']!,
+                _categories[index + 4]['image']!,
               );
             }),
           ),
@@ -95,7 +123,9 @@ class FlowerCatalogHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildCategoryItem(String name, String image, {bool isPink = false}) {
+  Widget _buildCategoryItem(String name, String image) {
+    final isSelected = name == selectedCategory;
+
     return GestureDetector(
       onTap: () => onCategoryTap?.call(name),
       child: Column(
@@ -113,8 +143,15 @@ class FlowerCatalogHeader extends StatelessWidget {
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.local_florist, color: Colors.grey),
+                    color: isSelected
+                        ? const Color(0xFFB07183).withValues(alpha: 0.2)
+                        : Colors.grey[200],
+                    child: Icon(
+                      Icons.local_florist,
+                      color: isSelected
+                          ? const Color(0xFFB07183)
+                          : Colors.grey,
+                    ),
                   );
                 },
               ),
@@ -125,8 +162,10 @@ class FlowerCatalogHeader extends StatelessWidget {
             name,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: isPink ? const Color(0xFFB07183) : const Color(0xFF333333),
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? const Color(0xFFB07183)
+                  : const Color(0xFF333333),
             ),
             textAlign: TextAlign.center,
           ),
@@ -158,7 +197,7 @@ class FlowerCatalogHeader extends StatelessWidget {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: filters
+                  children: _filters
                       .map((filter) => Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: _buildFilterChip(filter),

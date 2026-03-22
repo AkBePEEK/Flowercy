@@ -1,31 +1,77 @@
 import 'package:flutter/material.dart';
-import 'home.dart';
-import '../widgets/flowerCatalogHeader.dart'; // <-- Импорт нового виджета
+import '../home.dart';
+import '../../widgets/flowerCatalogHeader.dart'; // <-- Импорт нового виджета
 
-class FlowerCategoryScreen extends StatelessWidget {
+class FlowerCategoryScreen extends StatefulWidget {
   const FlowerCategoryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Данные для хедера
-    final categories = [
-      {'name': 'Flowers', 'image': 'assets/flowers/flowersCategory/flowers.png'},
-      {'name': 'Monobouquets', 'image': 'assets/flowers/flowersCategory/monobouquets.png'},
-      {'name': 'Signature', 'image': 'assets/flowers/flowersCategory/signature.png'},
-      {'name': 'By the stem', 'image': 'assets/flowers/flowersCategory/byTheStem.png'},
-      {'name': 'In a box', 'image': 'assets/flowers/flowersCategory/inBox.png'},
-      {'name': 'In a basket', 'image': 'assets/flowers/flowersCategory/inBasket.png'},
-      {'name': 'Bridal', 'image': 'assets/flowers/flowersCategory/bridal.png'},
-      {'name': 'In a wood box', 'image': 'assets/flowers/flowersCategory/inWoodBox.png'},
-    ];
+  State<FlowerCategoryScreen> createState() => _FlowerCategoryScreenState();
+}
 
-    final filters = [
-      'Price',
-      'Free delivery',
-      'Flowers type',
-      'Delivery time',
-      'Color',
-    ];
+class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
+  String _selectedCategory = 'Flowers';
+
+  final Map<String, List<Map<String, dynamic>>> _shopsByCategory = {
+    'Flowers': [
+      {
+        'name': 'Lui buton',
+        'category': 'FLOWERS | ASTANA | DELIVERY',
+        'deliveryTime': 'TOMORROW FROM 10:00',
+        'rating': 4.81,
+        'reviews': 711,
+        'delivery': 'Free',
+        'products': [
+          {'price': '14 500 ₸', 'image': 'assets/products/bouquet1.png'},
+          {'price': '7 000 ₸', 'image': 'assets/products/bouquet2.png'},
+          {'price': '22 000 ₸', 'image': 'assets/products/bouquet3.png'},
+          {'price': '24 000 ₸', 'image': 'assets/products/bouquet4.png'},
+          {'price': '32 500 ₸', 'image': 'assets/products/bouquet5.png'},
+          {'price': '19 500 ₸', 'image': 'assets/products/bouquet6.png'},
+        ],
+      },
+    ],
+    'Monobouquets': [
+      {
+        'name': 'Rose Garden',
+        'category': 'MONOBOUQUETS | ASTANA | DELIVERY',
+        'deliveryTime': 'TODAY FROM 12:00',
+        'rating': 4.90,
+        'reviews': 432,
+        'delivery': 'Free',
+        'products': [
+          {'price': '18 000 ₸', 'image': 'assets/products/bouquet1.png'},
+          {'price': '25 000 ₸', 'image': 'assets/products/bouquet2.png'},
+          {'price': '30 000 ₸', 'image': 'assets/products/bouquet3.png'},
+          {'price': '15 000 ₸', 'image': 'assets/products/bouquet4.png'},
+          {'price': '22 000 ₸', 'image': 'assets/products/bouquet5.png'},
+          {'price': '28 000 ₸', 'image': 'assets/products/bouquet6.png'},
+        ],
+      },
+    ],
+    'Signature': [
+      {
+        'name': 'Signature Flowers',
+        'category': 'SIGNATURE | ASTANA | DELIVERY',
+        'deliveryTime': 'TOMORROW FROM 14:00',
+        'rating': 4.75,
+        'reviews': 289,
+        'delivery': 'Free',
+        'products': [
+          {'price': '35 000 ₸', 'image': 'assets/products/bouquet1.png'},
+          {'price': '42 000 ₸', 'image': 'assets/products/bouquet2.png'},
+          {'price': '38 000 ₸', 'image': 'assets/products/bouquet3.png'},
+          {'price': '45 000 ₸', 'image': 'assets/products/bouquet4.png'},
+          {'price': '40 000 ₸', 'image': 'assets/products/bouquet5.png'},
+          {'price': '50 000 ₸', 'image': 'assets/products/bouquet6.png'},
+        ],
+      },
+    ],
+    // Добавьте остальные категории по аналогии...
+  };
+
+  @override
+  Widget build(BuildContext context) {
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -44,11 +90,12 @@ class FlowerCategoryScreen extends StatelessWidget {
                 print('Фильтр нажат');
               },
               onCategoryTap: (category) {
-                // Логика перехода по категории
+                setState(() {
+                  _selectedCategory = category;
+                });
                 print('Выбрана категория: $category');
               },
-              categories: categories,
-              filters: filters,
+              selectedCategory: _selectedCategory,
             ),
 
             // ✅ Уникальный контент только для этой страницы
@@ -71,40 +118,30 @@ class FlowerCategoryScreen extends StatelessWidget {
   }
   // Секция магазинов и товаров
   Widget _buildShopsSection() {
-    final shops = [
-      {
-        'name': 'Lui buton',
-        'category': 'FLOWERS | ASTANA | DELIVERY',
-        'deliveryTime': 'TOMORROW FROM 10:00',
-        'rating': 4.81,
-        'reviews': 711,
-        'delivery': 'Free',
-        'products': [
-          {'price': '14 500 ₸', 'image': 'assets/products/bouquet1.png'},
-          {'price': '7 000 ₸', 'image': 'assets/products/bouquet2.png'},
-          {'price': '22 000 ₸', 'image': 'assets/products/bouquet3.png'},
-          {'price': '24 000 ₸', 'image': 'assets/products/bouquet4.png'},
-          {'price': '32 500 ₸', 'image': 'assets/products/bouquet5.png'},
-          {'price': '19 500 ₸', 'image': 'assets/products/bouquet6.png'},
-        ],
-      },
-      {
-        'name': 'Flower Shop',
-        'category': 'FLOWERS | ASTANA | DELIVERY',
-        'deliveryTime': 'TODAY FROM 14:00',
-        'rating': 4.75,
-        'reviews': 523,
-        'delivery': 'Free',
-        'products': [
-          {'price': '12 000 ₸', 'image': 'assets/products/bouquet1.png'},
-          {'price': '8 500 ₸', 'image': 'assets/products/bouquet2.png'},
-          {'price': '18 000 ₸', 'image': 'assets/products/bouquet3.png'},
-          {'price': '25 000 ₸', 'image': 'assets/products/bouquet4.png'},
-          {'price': '30 000 ₸', 'image': 'assets/products/bouquet5.png'},
-          {'price': '15 500 ₸', 'image': 'assets/products/bouquet6.png'},
-        ],
-      },
-    ];
+    final shops = _shopsByCategory[_selectedCategory] ?? [];
+
+    // Если нет данных для категории
+    if (shops.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            children: [
+              Icon(Icons.local_florist, size: 80, color: Colors.grey[300]),
+              const SizedBox(height: 16),
+              Text(
+                'No shops available for $_selectedCategory',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -320,7 +357,7 @@ class FlowerCategoryScreen extends StatelessWidget {
     );
   }
 
-// Товар в сетке (без сердечка)
+// Товар в сетке
   Widget _buildProductGridItem(Map<String, dynamic> product) {
     return AspectRatio(
       aspectRatio: 1,
