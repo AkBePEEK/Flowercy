@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'myOrderDetails.dart';
+import 'orderComplete.dart';
+import 'orderInProgress.dart';
 
 class MyOrdersScreen extends StatelessWidget {
   const MyOrdersScreen({super.key});
@@ -163,14 +164,26 @@ class MyOrdersScreen extends StatelessWidget {
             child: TextButton(
               onPressed: () {
                 // Переход к деталям заказа
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrderDetailScreen(
-                      orderNumber: '№896743553',
+                if (status == 'In progress') {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderInProgressScreen(
+                        orderNumber: orderNumber,
+                      ),
                     ),
-                  ),
-                );
+                  );
+                } else {
+                  // Complete или Declined
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => OrderCompleteScreen(
+                        orderNumber: orderNumber,
+                      ),
+                    ),
+                  );
+                }
               },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
