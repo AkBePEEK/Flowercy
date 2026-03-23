@@ -1,9 +1,9 @@
-import 'package:flowery_app/screens/search.dart';
+import 'package:flowery_app/screens/navigationBar/search.dart';
 import 'package:flutter/material.dart';
-import 'cart.dart';
-import 'favorite.dart';
-import 'home.dart';
-import 'profile.dart';
+import 'navigationBar/cart.dart';
+import 'navigationBar/favorite.dart';
+import 'navigationBar/home.dart';
+import 'navigationBar/profile.dart';
 // Импортируйте другие экраны когда создадите их
 
 class MainScreen extends StatefulWidget {
@@ -18,9 +18,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     const HomeScreen(),           // Главная
-    const SearchScreen(),         // Поиск (создайте заглушку)
-    const FavoritesScreen(),      // Избранное (создайте загглушку)
-    const CartScreen(),           // Корзина (создайте заглушку)
+    const SearchScreen(),         // Поиск
+    const FavoritesScreen(),      // Избранное
+    const CartScreen(),           // Корзина
     const ProfileScreen(),        // Профиль
   ];
 

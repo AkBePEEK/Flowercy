@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'orderScreens/myOrder.dart';
+import '../orderScreens/myOrder.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

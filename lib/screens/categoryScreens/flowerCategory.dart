@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../home.dart';
+import '../mainScreen.dart';
 import '../../widgets/flowerCatalogHeader.dart';
 
 class FlowerCategoryScreen extends StatefulWidget {
@@ -115,7 +115,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                       : _selectedCategory,
                   onBackTap: () => Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    MaterialPageRoute(builder: (context) => const MainScreen()),
                   ),
                   onCategoryTap: (category) {
                     setState(() => _selectedCategory = category);

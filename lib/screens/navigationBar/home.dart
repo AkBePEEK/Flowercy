@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'categoryScreens/flowerCategory.dart';
+import '../categoryScreens/flowerCategory.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
