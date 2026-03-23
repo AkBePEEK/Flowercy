@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'orderScreens/myOrder.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -109,7 +111,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       color: Colors.white,
       child: Column(
         children: [
-          _buildMenuItem('My orders', hasArrow: true),
+          _buildMenuItem('My orders', hasArrow: true,
+            onTap: () {
+              // Переход на страницу заказов
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const MyOrdersScreen(),
+                  ),
+                );
+              },),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
             'Notifications',
@@ -145,27 +156,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
       String title, {
         bool hasArrow = false,
         Widget? trailing,
+        VoidCallback? onTap,
       }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+    return GestureDetector(
+      onTap: onTap, // ✅ Добавьте это
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
             ),
-          ),
-          if (trailing != null)
-            trailing
-          else if (hasArrow)
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.grey,
-            ),
-        ],
+            if (trailing != null)
+              trailing
+            else if (hasArrow)
+              const Icon(
+                Icons.chevron_right,
+                color: Colors.grey,
+              ),
+          ],
+        ),
       ),
     );
   }
