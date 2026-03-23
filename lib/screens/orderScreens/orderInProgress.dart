@@ -2,14 +2,54 @@ import 'package:flutter/material.dart';
 
 class OrderInProgressScreen extends StatelessWidget {
   final String orderNumber;
+  final String status; // ✅ Добавляем статус
 
   const OrderInProgressScreen({
     super.key,
     this.orderNumber = '№896743553',
+    this.status = 'Placed', // Placed, Collecting, Delivery, Delivered
   });
+
+  // ✅ Получаем данные для каждого статуса
+  Map<String, dynamic> _getStatusData() {
+    switch (status.toLowerCase()) {
+      case 'placed':
+        return {
+          'icon': 'assets/orderStatus/placed.png',
+          'title': 'The order has been placed',
+          'completedSteps': 1,
+        };
+      case 'collecting':
+        return {
+          'icon': 'assets/orderStatus/collecting.png', // Или custom icon букета
+          'title': 'Collecting the order',
+          'completedSteps': 2,
+        };
+      case 'delivery':
+        return {
+          'icon': 'assets/orderStatus/delivery.png',
+          'title': 'The courier is on his way',
+          'completedSteps': 3,
+        };
+      case 'delivered':
+        return {
+          'icon': 'assets/orderStatus/delivered.png',
+          'title': 'The order has been delivered',
+          'completedSteps': 4,
+        };
+      default:
+        return {
+          'icon': 'assets/orderStatus/collecting.png',
+          'title': 'The order has been placed',
+          'completedSteps': 1,
+        };
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final statusData = _getStatusData();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -38,25 +78,24 @@ class OrderInProgressScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     const SizedBox(height: 24),
-                    // Иконка подтверждения
+                    // ✅ Динамическая иконка статуса
                     Container(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFB07183).withValues(alpha: 0.2),
+                        color: const Color(0xFFB07183).withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.receipt_long,
-                        size: 60,
-                        color: Color(0xFFB07183),
+                      child: Image.asset(
+                        statusData['icon'],
+                        color: const Color(0xFFB07183),
                       ),
                     ),
                     const SizedBox(height: 24),
-                    // Текст подтверждения
-                    const Text(
-                      'The order has been placed',
-                      style: TextStyle(
+                    // ✅ Динамический текст статуса
+                    Text(
+                      statusData['title'],
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFFB07183),
@@ -64,8 +103,8 @@ class OrderInProgressScreen extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 60),
-                    // Трекер прогресса
-                    _buildProgressTracker(),
+                    // ✅ Трекер прогресса с динамическими шагами
+                    _buildProgressTracker(statusData['completedSteps']),
                     const SizedBox(height: 60),
                     // Кнопки Support и Details
                     _buildActionButtons(),
@@ -75,101 +114,100 @@ class OrderInProgressScreen extends StatelessWidget {
               ),
             ),
           ),
-          // Кнопка Cancel order
-          _buildCancelButton(context),
+          // Кнопка Cancel order (показываем только если заказ не доставлен)
+          if (status.toLowerCase() != 'delivered')
+            _buildCancelButton(context),
         ],
       ),
     );
   }
 
-  // Трекер прогресса
-  Widget _buildProgressTracker() {
+  // ✅ Трекер прогресса с динамическими шагами
+  Widget _buildProgressTracker(int completedSteps) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Шаг 1: Заказ размещен (активен)
+        // Шаг 1: Заказ размещен
         _buildProgressStep(
           icon: Icons.check,
-          isActive: true,
-          isCompleted: true,
+          isCompleted: completedSteps >= 1, image: '',
         ),
         // Линия
         Expanded(
           child: Container(
             height: 2,
-            color: Colors.grey[300],
+            color: completedSteps >= 2
+                ? const Color(0xFFB07183)
+                : Colors.grey[300],
             margin: const EdgeInsets.only(bottom: 15),
           ),
         ),
         // Шаг 2: Собирается
         _buildProgressStep(
-          icon: Icons.shopping_bag,
-          isActive: false,
-          isCompleted: false,
+          image: 'assets/shopping_basket.png',
+          isCompleted: completedSteps >= 2,
         ),
         // Линия
         Expanded(
           child: Container(
             height: 2,
-            color: Colors.grey[300],
+            color: completedSteps >= 3
+                ? const Color(0xFFB07183)
+                : Colors.grey[300],
             margin: const EdgeInsets.only(bottom: 15),
           ),
         ),
         // Шаг 3: Доставка
         _buildProgressStep(
-          icon: Icons.local_shipping,
-          isActive: false,
-          isCompleted: false,
+          icon: Icons.directions_car_filled_outlined,
+          isCompleted: completedSteps >= 3, image: '',
         ),
         // Линия
         Expanded(
           child: Container(
             height: 2,
-            color: Colors.grey[300],
+            color: completedSteps >= 4
+                ? const Color(0xFFB07183)
+                : Colors.grey[300],
             margin: const EdgeInsets.only(bottom: 15),
           ),
         ),
         // Шаг 4: Доставлен
         _buildProgressStep(
-          icon: Icons.flag,
-          isActive: false,
-          isCompleted: false,
+          icon: Icons.flag_outlined,
+          isCompleted: completedSteps >= 4, image: '',
         ),
       ],
     );
   }
 
-  // Шаг прогресса
+  // ✅ Шаг прогресса
   Widget _buildProgressStep({
-    required IconData icon,
-    required bool isActive,
+    required String image,
     required bool isCompleted,
+    IconData? icon
   }) {
-    Color backgroundColor;
-    Color iconColor;
-
-    if (isCompleted) {
-      backgroundColor = const Color(0xFFB07183);
-      iconColor = Colors.white;
-    } else if (isActive) {
-      backgroundColor = const Color(0xFFB07183);
-      iconColor = Colors.white;
-    } else {
-      backgroundColor = Colors.grey[200]!;
-      iconColor = Colors.grey[400]!;
-    }
-
     return Container(
       width: 50,
       height: 50,
       decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
+        color: isCompleted ? const Color(0xFFB07183) : Colors.grey[300]!,
+        shape: BoxShape.rectangle,
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: Icon(
-        icon,
-        color: iconColor,
-        size: 24,
+      child: Image.asset(
+        image,
+        width: 24,
+        height: 24,
+        color: isCompleted ? Colors.white : Color(0xFFC8C8C8),
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback на иконку если изображение не найдено
+          return Icon(
+            icon,
+            color: isCompleted ? Colors.white : Color(0xFFC8C8C8),
+            size: 32,
+          );
+        },
       ),
     );
   }
@@ -179,7 +217,6 @@ class OrderInProgressScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // Support
         _buildActionButton(
           icon: Icons.headset_mic,
           label: 'Support',
@@ -188,7 +225,6 @@ class OrderInProgressScreen extends StatelessWidget {
           },
         ),
         const SizedBox(width: 16),
-        // Details
         _buildActionButton(
           icon: Icons.list,
           label: 'Details',
@@ -292,8 +328,8 @@ class OrderInProgressScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // Закрыть диалог
-              Navigator.pop(context); // Вернуться назад
+              Navigator.pop(context);
+              Navigator.pop(context);
               print('❌ Order cancelled');
             },
             style: ElevatedButton.styleFrom(

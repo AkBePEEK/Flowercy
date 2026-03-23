@@ -1,17 +1,37 @@
 import 'package:flutter/material.dart';
 
-class OrderCompleteScreen extends StatelessWidget {
+class OrderDetailScreen extends StatelessWidget {
   final String orderNumber;
+  final String status; // Complete, In progress, Declined, etc.
 
-  const OrderCompleteScreen({
+  const OrderDetailScreen({
     super.key,
     this.orderNumber = '№896743553',
+    this.status = 'Complete',
   });
+
+  // ✅ Получаем цвет статуса
+  Color _getStatusColor() {
+    switch (status.toLowerCase()) {
+      case 'complete':
+        return Colors.green;
+      case 'in progress':
+      case 'processing':
+        return Color(0xFFFEDC02);
+      case 'declined':
+      case 'cancelled':
+        return Colors.red;
+      case 'pending':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: Colors.white, // ✅ Изменили на белый
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -34,26 +54,108 @@ class OrderCompleteScreen extends StatelessWidget {
           Expanded(
             child: SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  // Информация о заказе
+
+                  // ✅ Статус заказа + номер
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            status,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          orderNumber,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ✅ Товар заказа (упрощённый)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Rose bouquet',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                '42 480₸',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // ✅ Информация о заказе (обновлённая)
                   _buildInfoSection(),
-                  const SizedBox(height: 24),
-                  // Товары заказа (можно добавить)
-                  _buildOrderItems(),
+
                   const SizedBox(height: 100),
                 ],
               ),
             ),
           ),
-          // Кнопка Repeat order
-          _buildBottomButton(context),
+
+          // Кнопка Repeat order (только для Complete)
+          if (status.toLowerCase() == 'complete')
+            _buildBottomButton(context),
         ],
       ),
     );
   }
 
-  // Секция с информацией
+  // ✅ Обновлённая секция с информацией
   Widget _buildInfoSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -67,9 +169,7 @@ class OrderCompleteScreen extends StatelessWidget {
           const Divider(height: 1, indent: 16),
           _buildInfoRow('Address', 'Astana, Uly Dala Avenue, 31'),
           const Divider(height: 1, indent: 16),
-          _buildInfoRow('Apt./Office/Floor/Entrance', 'Apt. 510 /...'),
-          const Divider(height: 1, indent: 16),
-          _buildInfoRow('Delivery time', 'today, 8:00 - 10:00'),
+          _buildInfoRow('Delivery time', '14 February, Wed'),
           const Divider(height: 1, indent: 16),
           _buildInfoRow('Payment', 'Upon receipt'),
         ],
@@ -77,7 +177,6 @@ class OrderCompleteScreen extends StatelessWidget {
     );
   }
 
-  // Строка информации
   Widget _buildInfoRow(String label, String value) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -106,76 +205,6 @@ class OrderCompleteScreen extends StatelessWidget {
     );
   }
 
-  // Товары заказа
-  Widget _buildOrderItems() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Items',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          // Пример товара
-          Row(
-            children: [
-              Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Rose bouquet',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Quantity: 1',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      '42 480₸',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Кнопка Repeat order
   Widget _buildBottomButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -192,7 +221,6 @@ class OrderCompleteScreen extends StatelessWidget {
       child: SafeArea(
         child: ElevatedButton(
           onPressed: () {
-            // Логика повторного заказа
             print('🔁 Repeat order $orderNumber');
           },
           style: ElevatedButton.styleFrom(

@@ -71,7 +71,7 @@ class _MainScreenState extends State<MainScreen> {
             index: 3,
           ),
           _buildNavItem(
-            icon: Icons.person,
+            icon: Icons.person_outline,
             label: 'Profile',
             index: 4,
           ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../categoryScreens/flowerCategory.dart';
+import '../orderScreens/orderInProgress.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -41,6 +42,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
+            _buildBottomBanner(context)
           ],
         ),
       ),
@@ -509,43 +511,65 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // Widget _buildBottomBanner() {
-  //   return Container(
-  //     margin: const EdgeInsets.all(16),
-  //     padding: const EdgeInsets.all(16),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(16),
-  //     ),
-  //     child: Row(
-  //       children: [
-  //         Container(
-  //           padding: const EdgeInsets.all(12),
-  //           decoration: BoxDecoration(
-  //             color: Colors.pink[100],
-  //             borderRadius: BorderRadius.circular(12),
-  //           ),
-  //           child: const Icon(Icons.shopping_bag, color: Colors.pink),
-  //         ),
-  //         const SizedBox(width: 12),
-  //         const Expanded(
-  //           child: Column(
-  //             crossAxisAlignment: CrossAxisAlignment.start,
-  //             children: [
-  //               Text(
-  //                 'Collecting order',
-  //                 style: TextStyle(fontWeight: FontWeight.bold),
-  //               ),
-  //               SizedBox(height: 4),
-  //               Text(
-  //                 'We deliver flowers today, from 8:00 to 10:00',
-  //                 style: TextStyle(fontSize: 12, color: Colors.grey),
-  //               ),
-  //             ],
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+  Widget _buildBottomBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFB07183),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Image.asset("assets/shopping_basket.png"),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: (){
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OrderInProgressScreen(
+                    orderNumber: '№896743553',
+                  ),
+                ),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Collecting order',
+                  style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'We deliver flowers today, from 8:00 to 10:00',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -32,17 +32,10 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/flowers/homeScreen/flowersCategories.png
-    - assets/flowers/homeScreen/sweetsCategories.png
-    - assets/flowers/homeScreen/plantsCategories.png
-    - assets/flowers/homeScreen/bearCategories.png
-    - assets/flowers/homeScreen/balloonsCategories.png
-    - assets/flowers/homeScreen/AIFlorist.png
-    - assets/flowers/homeScreen/bouquetCrafting.png
-    - assets/flowers/homeScreen/Ranunculuses.jpg
+    - assets/flowers/homeScreen/
     - assets/flowers/signInScreen/
     - assets/flowers/flowersCategory/
     - assets/flowers/products/
-    - assets/flowers/logo.png
-    - assets/flowers/homeActive.png
-    - assets/flowers/homeInActive.png
+    - assets/flowers/
+    - assets/shopping_basket.png
+    - assets/orderStatus/
