@@ -1,0 +1,575 @@
+import 'package:flutter/material.dart';
+
+import '../categoryScreens/flowerCategory.dart';
+import '../orderScreens/orderInProgress.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header с адресом
+            _buildHeader(),
+
+            // Основной контент
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // ВАЖНО!
+                    children: [
+                      // Категории
+                      _buildCategories(context),
+                      const SizedBox(height: 20),
+
+                      // Карточки AI Florist и Bouquet crafting
+                      _buildFeatureCards(),
+                      const SizedBox(height: 20),
+
+                      // Top pick
+                      _buildTopPick(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            _buildBottomBanner(context)
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Row(
+        children: [
+          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 20),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Astana',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                Text(
+                  'Uly Dala avenue, 31',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.notifications_outlined),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategories(BuildContext context) {
+    return SizedBox(
+      height: 98,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
+          _buildCategoryItem('Flowers', Colors.purple[100]!, 'assets/flowers/homeScreen/flowersCategories.png', context),
+          _buildCategoryItem('Sweets', Colors.pink[100]!, 'assets/flowers/homeScreen/sweetsCategories.png', context),
+          _buildCategoryItem('Plants', Colors.green[100]!, 'assets/flowers/homeScreen/plantsCategories.png', context),
+          _buildCategoryItem('Bears', Colors.blue[100]!, 'assets/flowers/homeScreen/bearCategories.png', context),
+          _buildCategoryItem('Balloons', Colors.orange[100]!, 'assets/flowers/homeScreen/balloonsCategories.png', context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryItem(String name, Color color, String imagePath, BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        _navigateToCategory(name, context);
+      },
+      child: Container(
+        width: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        child: Column(
+          children: [
+            Container(
+              height: 70,
+              width: 70,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: color,
+                      child: const Icon(
+                        Icons.local_florist,
+                        color: Colors.white70,
+                        size: 30,
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: 12,
+                color: name == 'Flowers' ? const Color(0xFFFF67B3) : const Color(0xFF333333),
+                fontWeight: name == 'Flowers' ? FontWeight.w600 : FontWeight.w500,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+// Функция навигации (добавьте в класс _CatalogScreenState)
+  void _navigateToCategory(String category, BuildContext context) {
+    switch (category) {
+      case 'Flowers':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FlowerCategoryScreen()),
+        );
+        break;
+      // case 'Sweets':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),
+      //   );
+      //   break;
+      // case 'Plants':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const PlantsCategoryScreen()),
+      //   );
+      //   break;
+      // case 'Bears':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const BearsCategoryScreen()),
+      //   );
+      //   break;
+      // case 'Balloons':
+      //   Navigator.push(
+      //     context,
+      //     MaterialPageRoute(builder: (context) => const BalloonsCategoryScreen()),
+      //   );
+      //   break;
+    }
+  }
+
+  Widget _buildFeatureCards()  {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row( // Изменили Row на Column
+        children: [
+          // Первая карточка
+          Flexible(child:
+            Container(
+            height: 174,
+            width: double.infinity, // На всю ширину
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Color(0xFFFFEBF5),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Image.asset('assets/flowers/homeScreen/AIFlorist.png'),
+                ),
+
+                const SizedBox(height: 10),
+
+                const Text(
+                  'AI Florist',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+
+                const SizedBox(height: 5),
+
+                const Text(
+                  'Find the perfect bouquet for any moment',
+                  style: TextStyle(fontSize: 12),
+                ),
+
+                const Spacer(),
+
+                Row(
+                  children: [
+                    // Кнопка с текстом
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                            color: Color(0xFFFF67B3),
+                            borderRadius: BorderRadius.circular(8)
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Ask AI for ideas',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Кнопка со стрелкой
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFFFF67B3),
+                        size: 12,
+                      ),
+                    ),
+                  ],
+                )
+
+              ],
+            ),
+          )
+          ),
+
+          const SizedBox(height: 12, width: 10),
+
+          // Вторая карточка
+          Flexible(child:
+            Container(
+            height: 174,
+            width: double.infinity, // На всю ширину
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Color(0xFFE7EDFF),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                    child: Image.asset("assets/flowers/homeScreen/bouquetCrafting.png"),
+                ),
+                const SizedBox(height: 10),
+
+                const Text(
+                  'Bouquet crafting',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                const SizedBox(height: 5),
+
+                const Text(
+                  'Create your own bouquet with our florists',
+                  style: TextStyle(fontSize: 12),
+                ),
+
+                const Spacer(),
+
+                Row(
+                  children: [
+                    // Кнопка с текстом
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF558DF0),
+                          borderRadius: BorderRadius.circular(8)
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'Start crafting',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Кнопка со стрелкой
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: const BoxDecoration(
+                        color: Colors.white, // Или Color(0xFF558DF0) с иконкой белого цвета
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(12),
+                          bottomRight: Radius.circular(12),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF558DF0),
+                        size: 12,
+                      ),
+                    ),
+                  ],
+                )
+
+                ],
+              ),
+            )
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopPick() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              const Text(
+                'Top pick ',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+              ),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('🔥', style: TextStyle(fontSize: 20)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            children: [
+              _buildProductCard(
+                'Ranunculuses',
+                '88.000',
+                "assets/flowers/homeScreen/Ranunculuses.jpg"
+              ),
+            ]
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductCard(String title, String price, String imagePath) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      width: double.infinity,
+      height: 256, // Фиксированная высота для карточки
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Stack(
+        children: [
+          // 1. Изображение на весь контейнер
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.asset(
+              imagePath,
+              width: double.infinity,
+              height: double.infinity,
+              fit: BoxFit.cover,
+            ),
+          ),
+
+          // 2. Градиент затемнения снизу (для читаемости текста)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: Container(
+              height: 120, // Высота градиента
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(16),
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.7), // Темный снизу
+                    Colors.black.withValues(alpha: 0.3), // Прозрачнее в середине
+                    Colors.transparent, // Полностью прозрачный сверху
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 3. Бейдж "Top Choice" сверху слева
+          Positioned(
+            top: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'Top Choice',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFFFF67B3),
+                ),
+              ),
+            ),
+          ),
+
+          // 4. Текст снизу (название и цена)
+          Positioned(
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Colors.white, // Белый текст
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '₸ $price',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white, // Белый текст
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFB07183),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Image.asset("assets/shopping_basket.png"),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: (){
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => OrderInProgressScreen(
+                    orderNumber: '№896743553',
+                  ),
+                ),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Collecting order',
+                  style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'We deliver flowers today, from 8:00 to 10:00',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

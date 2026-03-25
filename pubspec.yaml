@@ -18,13 +18,24 @@ dependencies:
   firebase_auth: ^6.2.0
   firebase_core_platform_interface: ^6.0.2
 
+  google_sign_in: ^7.2.0
+
 dev_dependencies:
+
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^6.0.0
+
+  flutter_launcher_icons: ^0.9.2
 
 flutter:
   uses-material-design: true
 
   assets:
+    - assets/flowers/homeScreen/
+    - assets/flowers/signInScreen/
+    - assets/flowers/flowersCategory/
+    - assets/flowers/products/
     - assets/flowers/
+    - assets/shopping_basket.png
+    - assets/orderStatus/
