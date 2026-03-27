@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../models/order.dart';
+import '../../services/orderService.dart';
 import 'orderComplete.dart';
 
 class MyOrdersScreen extends StatelessWidget {
@@ -26,44 +28,26 @@ class MyOrdersScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        children: [
-          _buildOrderItem(
-            context,
-            status: 'In progress',
-            statusColor: Colors.yellow,
-            orderNumber: '№896743553',
-            productName: 'Rose bouquet',
-            price: '42 480₸',
-          ),
-          const SizedBox(height: 12),
-          _buildOrderItem(
-            context,
-            status: 'Complete',
-            statusColor: Colors.green,
-            orderNumber: '№896743553',
-            productName: 'Rose bouquet',
-            price: '42 480₸',
-          ),
-          const SizedBox(height: 12),
-          _buildOrderItem(
-            context,
-            status: 'Declined',
-            statusColor: Colors.red,
-            orderNumber: '№896743553',
-            productName: 'Rose bouquet',
-            price: '42 480₸',
-          ),
-          const SizedBox(height: 12),
-          _buildOrderItem(
-            context,
-            status: 'In progress',
-            statusColor: Colors.yellow,
-            orderNumber: '№896743553',
-            productName: 'Rose bouquet',
-            price: '42 480₸',
-          ),
-        ],
+      body: StreamBuilder<List<Order>>(
+        stream: OrderService().getUserOrdersStream(), // ✅ Реальные данные
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Text('Ошибка: ${snapshot.error}'));
+          }
+          final orders = snapshot.data ?? [];
+          if (orders.isEmpty) {
+            return const Center(child: Text('Заказов пока нет 🌸'));
+          }
+          return ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            itemCount: orders.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) => _buildOrderItemFromOrder(orders[index], context),
+          );
+        },
       ),
     );
   }
@@ -75,8 +59,11 @@ class MyOrdersScreen extends StatelessWidget {
         required String orderNumber,
         required String productName,
         required String price,
+        VoidCallback? onTap, // ✅ Новый параметр
       }) {
-    return Container(
+    return GestureDetector( // ✅ Оборачиваем в GestureDetector
+        onTap: onTap,
+        child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -195,6 +182,29 @@ class MyOrdersScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    ),
+    );
+  }
+
+  Widget _buildOrderItemFromOrder(Order order, BuildContext context) {
+    final firstItem = order.items.firstOrNull; // ✅ Первый товар для превью
+    return _buildOrderItem(
+      context,
+      status: order.statusText, // ✅ "В процессе", "Доставлен" из модели
+      statusColor: Color(int.parse('0xFF${order.statusColorHex}')), // ✅ Цвет из модели
+      orderNumber: '№${order.id}',
+      productName: firstItem?.name ?? 'Заказ',
+      price: order.formattedTotal, // ✅ "42 480 ₸" из модели
+      // ✅ Передаём ID заказа для навигации
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OrderDetailScreen(
+            orderNumber: '№${order.id}',
+            status: order.status, // ✅ Передаём только статус
+          ),
+        ),
       ),
     );
   }

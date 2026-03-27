@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../models/shop.dart';
+import '../../services/shopService.dart';
 import '../searchResults.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -11,11 +13,46 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
 
+  // ✅ Добавьте сервис и переменные состояния
+  final ShopService _shopService = ShopService();
+  List<Shop> _shops = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShops(); // ✅ Загружаем данные при открытии экрана
+  }
+
+  // ✅ Метод загрузки магазинов из Firestore
+  Future<void> _loadShops() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final shops = await _shopService.getAllShops();
+      setState(() {
+        _shops = shops;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load shops';
+        _isLoading = false;
+      });
+      print('❌ Error loading shops: $e');
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
+  // ... остальной код
 
   // Метод для поиска
   void _performSearch() {
@@ -31,100 +68,60 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
-          children: [
-
-            // Search Bar
+            children: [
             _buildSearchBar(),
-            const SizedBox(height: 16),
+        const SizedBox(height: 16),
 
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: Text(
-                        'Most popular',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // List of shops
-                    _buildShopItem(
-                      name: 'Lui buton',
-                      rating: 4.7,
-                      reviews: 676,
-                      image: 'assets/shops/lui_buton.png',
-                      discount: '30% off select items',
-                      freeDelivery: false,
-                    ),
-                    _buildShopItem(
-                      name: 'Rosalie',
-                      rating: 4.2,
-                      reviews: 228,
-                      image: 'assets/shops/rosalie.png',
-                      discount: '40% off select items',
-                      freeDelivery: true,
-                    ),
-                    _buildShopItem(
-                      name: 'Cvetasto',
-                      rating: 4.9,
-                      reviews: 931,
-                      image: 'assets/shops/cvetasto.png',
-                      discount: '25% off select items',
-                      freeDelivery: true,
-                    ),
-                    _buildShopItem(
-                      name: 'Nazdar',
-                      rating: 4.6,
-                      reviews: 790,
-                      image: 'assets/shops/nazdar.png',
-                      discount: null,
-                      freeDelivery: true,
-                    ),
-                    _buildShopItem(
-                      name: 'Flowerhub',
-                      rating: 4.8,
-                      reviews: 378,
-                      image: 'assets/shops/flowerhub.png',
-                      discount: '30% off select items',
-                      freeDelivery: false,
-                    ),
-                    _buildShopItem(
-                      name: 'Celine',
-                      rating: 4.9,
-                      reviews: 1379,
-                      image: 'assets/shops/celine.png',
-                      discount: '20% off select items',
-                      freeDelivery: true,
-                    ),
-                    _buildShopItem(
-                      name: 'Romeo',
-                      rating: 4.7,
-                      reviews: 872,
-                      image: 'assets/shops/romeo.png',
-                      discount: '25% off select items',
-                      freeDelivery: true,
-                    ),
-                    const SizedBox(height: 100),
-                  ],
+        Expanded(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator()) // ✅ Индикатор загрузки
+              : _error != null
+              ? Center(  // ✅ Сообщение об ошибке
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: _loadShops,
+                  child: const Text('Retry'),
                 ),
-              ),
+              ],
             ),
-          ],
+          )
+              : _shops.isEmpty
+              ? const Center(child: Text('No shops found')) // ✅ Пустой список
+              : SingleChildScrollView(  // ✅ Список магазинов
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: Text(
+                    'Most popular',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                // ✅ Генерируем список из данных Firestore
+                ..._shops.map((shop) => _buildShopItem(shop)),
+                const SizedBox(height: 100),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
+    ),
+    ),
     );
   }
 
@@ -169,14 +166,8 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   // Shop Item
-  Widget _buildShopItem({
-    required String name,
-    required double rating,
-    required int reviews,
-    required String image,
-    String? discount,
-    bool freeDelivery = false,
-  }) {
+  // ✅ Обновленная подпись метода
+  Widget _buildShopItem(Shop shop) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
@@ -197,13 +188,19 @@ class _SearchScreenState extends State<SearchScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                image,
+              child: Image.network(  // ✅ Используем Image.network для URL из базы
+                shop.image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[300],
-                    child: const Icon(Icons.local_florist, color: Colors.grey),
+                    child: const Icon(Icons.store, color: Colors.grey),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   );
                 },
               ),
@@ -216,7 +213,7 @@ class _SearchScreenState extends State<SearchScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  name,
+                  shop.name,  // ✅ Из объекта shop
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -228,11 +225,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     const Icon(Icons.star, color: Colors.amber, size: 18),
                     const SizedBox(width: 4),
                     Text(
-                      '$rating/5 rating',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      '${shop.rating}/5 rating',  // ✅ Из объекта shop
+                      style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(width: 8),
                     const Text('•', style: TextStyle(fontSize: 14)),
@@ -240,7 +234,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     const Icon(Icons.chat_bubble_outline, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '$reviews review',
+                      '${shop.reviews} review',  // ✅ Из объекта shop
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -250,18 +244,15 @@ class _SearchScreenState extends State<SearchScreen> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (discount != null)
+                    if (shop.discount != null)  // ✅ Из объекта shop
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.green[50],
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          discount,
+                          shop.discount!,  // ✅ Из объекта shop
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.green[700],
@@ -269,12 +260,9 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                         ),
                       ),
-                    if (freeDelivery)
+                    if (shop.freeDelivery)  // ✅ Из объекта shop
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.pink[50],
                           borderRadius: BorderRadius.circular(6),

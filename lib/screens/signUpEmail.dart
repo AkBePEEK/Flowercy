@@ -130,7 +130,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
                     image: const DecorationImage(
-                      image: AssetImage('assets/flowers/flowerHeader.png'),
+                      image: AssetImage('assets/flowers/signInScreen/flowerHeader.png'),
                       fit: BoxFit.cover,
                     ),
                   ),

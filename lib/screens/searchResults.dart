@@ -1,12 +1,121 @@
 import 'package:flutter/material.dart';
+import '../../models/product.dart';            // ✅ Модель Product
+import '../../models/shop.dart';
+import '../services/productService.dart';
+import '../services/shopService.dart';
+import '../services/userService.dart';               // ✅ Модель Shop
 
-class SearchResultsScreen extends StatelessWidget {
+class SearchResultsScreen extends StatefulWidget {
   final String query;
 
   const SearchResultsScreen({
     super.key,
     required this.query,
   });
+
+  @override
+  State<SearchResultsScreen> createState() => _SearchResultsScreenState();
+}
+
+class _SearchResultsScreenState extends State<SearchResultsScreen> {
+  final ProductService _productService = ProductService();
+  final ShopService _shopService = ShopService();
+  final UserService _userService = UserService();
+
+  // ✅ Данные из Firestore
+  List<Product> _products = [];
+  Map<String, Shop> _shops = {}; // Map для быстрого доступа по shopId
+
+  // ✅ Избранное
+  Set<String> _favoriteProductIds = {};
+
+  // ✅ Состояния
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _performSearch();
+    _loadFavorites();
+  }
+
+  // ✅ Поиск товаров
+  Future<void> _performSearch() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Ищем товары по названию (query)
+      final products = await _productService.searchProducts(widget.query);
+
+      // Загружаем информацию о магазинах
+      final shopIds = products.map((p) => p.shopId).toSet();
+      final shopsMap = <String, Shop>{};
+
+      for (var shopId in shopIds) {
+        final shop = await _shopService.getShopById(shopId);
+        if (shop != null) {
+          shopsMap[shopId] = shop;
+        }
+      }
+
+      setState(() {
+        _products = products;
+        _shops = shopsMap;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to search products';
+        _isLoading = false;
+      });
+      print('❌ Search error: $e');
+    }
+  }
+
+  // ✅ Загрузка избранного
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _userService.getFavorites();
+      setState(() {
+        _favoriteProductIds = favorites.toSet();
+      });
+    } catch (e) {
+      print('❌ Error loading favorites: $e');
+    }
+  }
+
+  // ✅ Переключение избранного
+  Future<void> _toggleFavorite(String productId, String productName) async {
+    final isFavorite = _favoriteProductIds.contains(productId);
+
+    try {
+      if (isFavorite) {
+        await _userService.removeFromFavorites(productId);
+        setState(() => _favoriteProductIds.remove(productId));
+        _showSnackBar('$productName removed from favorites');
+      } else {
+        await _userService.addToFavorites(productId);
+        setState(() => _favoriteProductIds.add(productId));
+        _showSnackBar('$productName added to favorites ❤️');
+      }
+    } catch (e) {
+      _showSnackBar('Error: ${e.toString()}');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,24 +133,45 @@ class SearchResultsScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFB07183), width: 1.5),
+            border: Border.all(
+              color: const Color(0xFFB07183),
+              width: 1.5,
+            ),
+            // ✅ Добавляем тень для объёма (опционально)
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFB07183).withValues(alpha: 0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
               Expanded(
                 child: Text(
-                  query,
+                  widget.query,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
+                    color: Colors.black87, // ✅ Тёмный текст
                   ),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.clear, size: 20),
-                onPressed: () => Navigator.pop(context),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: Colors.grey[100], // ✅ Серый фон для кнопки X
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.clear, size: 16),
+                  onPressed: () => Navigator.pop(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  color: Colors.grey[700], // ✅ Тёмно-серая иконка
+                ),
               ),
             ],
           ),
@@ -50,15 +180,31 @@ class SearchResultsScreen extends StatelessWidget {
       body: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _performSearch,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+                : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Results count
+                  // ✅ Динамический счётчик результатов
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: Text(
-                      '167 results found',
+                      '${_products.length} results found',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -67,50 +213,9 @@ class SearchResultsScreen extends StatelessWidget {
                     ),
                   ),
 
-                  // Shops and products
-                  _buildShopSection(
-                    context,
-                    name: 'Lui buton',
-                    rating: 4.7,
-                    reviews: 676,
-                    image: 'assets/shops/lui_buton.png',
-                    discount: '30% off select items',
-                    products: [
-                      {'price': '32 000₸', 'name': '51 red roses', 'image': 'assets/flowers/products/red_roses.png'},
-                      {'price': '57 500₸', 'name': '101 pink roses', 'image': 'assets/flowers/products/pink_roses.png'},
-                      {'price': '150 990₸', 'name': '222 white ros...', 'image': 'assets/flowers/products/white_roses.png'},
-                    ],
-                  ),
+                  // ✅ Группировка товаров по магазинам
+                  ..._buildShopSections(),
 
-                  _buildShopSection(
-                    context,
-                    name: 'Rosalie',
-                    rating: 4.2,
-                    reviews: 228,
-                    image: 'assets/shops/rosalie.png',
-                    discount: '40% off select items',
-                    freeDelivery: true,
-                    products: [
-                      {'price': '32 000₸', 'name': '51 red roses', 'image': 'assets/flowers/products/red_roses.png'},
-                      {'price': '57 500₸', 'name': '101 pink roses', 'image': 'assets/flowers/products/pink_roses.png'},
-                      {'price': '150 990₸', 'name': '222 white ros...', 'image': 'assets/flowers/products/white_roses.png'},
-                    ],
-                  ),
-
-                  _buildShopSection(
-                    context,
-                    name: 'Cvetasto',
-                    rating: 4.9,
-                    reviews: 931,
-                    image: 'assets/shops/cvetasto.png',
-                    discount: '25% off select items',
-                    freeDelivery: true,
-                    products: [
-                      {'price': '32 000₸', 'name': '51 red roses', 'image': 'assets/flowers/products/red_roses.png'},
-                      {'price': '57 500₸', 'name': '101 pink roses', 'image': 'assets/flowers/products/pink_roses.png'},
-                      {'price': '150 990₸', 'name': '222 white ros...', 'image': 'assets/flowers/products/white_roses.png'},
-                    ],
-                  ),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -121,17 +226,37 @@ class SearchResultsScreen extends StatelessWidget {
     );
   }
 
-  // Shop Section with Products
-  Widget _buildShopSection(
-      BuildContext context, {
-        required String name,
-        required double rating,
-        required int reviews,
-        required String image,
-        String? discount,
-        bool freeDelivery = false,
-        required List<Map<String, String>> products,
-      }) {
+  // ✅ Построение секций магазинов
+  List<Widget> _buildShopSections() {
+    // Группируем товары по shopId
+    final Map<String, List<Product>> productsByShop = {};
+    for (var product in _products) {
+      if (!productsByShop.containsKey(product.shopId)) {
+        productsByShop[product.shopId] = [];
+      }
+      productsByShop[product.shopId]!.add(product);
+    }
+
+    // Создаём виджеты для каждого магазина
+    return productsByShop.entries.map((entry) {
+      final shopId = entry.key;
+      final products = entry.value;
+      final shop = _shops[shopId];
+
+      if (shop == null) return const SizedBox.shrink();
+
+      return _buildShopSection(
+        shop: shop,
+        products: products,
+      );
+    }).toList();
+  }
+
+  // ✅ Секция магазина с товарами (без отступа снизу)
+  Widget _buildShopSection({
+    required Shop shop,
+    required List<Product> products,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -155,13 +280,19 @@ class SearchResultsScreen extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    image,
+                  child: Image.network(
+                    shop.image,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         color: Colors.grey[300],
                         child: const Icon(Icons.local_florist, color: Colors.grey),
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       );
                     },
                   ),
@@ -173,7 +304,7 @@ class SearchResultsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      shop.name,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -185,7 +316,7 @@ class SearchResultsScreen extends StatelessWidget {
                         const Icon(Icons.star, color: Colors.amber, size: 16),
                         const SizedBox(width: 4),
                         Text(
-                          '$rating/5 rating',
+                          '${shop.rating}/5 rating',
                           style: const TextStyle(fontSize: 13),
                         ),
                         const SizedBox(width: 8),
@@ -194,18 +325,18 @@ class SearchResultsScreen extends StatelessWidget {
                         const Icon(Icons.chat_bubble_outline, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          '$reviews review',
+                          '${shop.reviews} review',
                           style: const TextStyle(fontSize: 13),
                         ),
                       ],
                     ),
-                    if (discount != null || freeDelivery) ...[
+                    if (shop.discount != null || shop.freeDelivery) ...[
                       const SizedBox(height: 6),
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
                         children: [
-                          if (discount != null)
+                          if (shop.discount != null)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -213,7 +344,7 @@ class SearchResultsScreen extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                discount,
+                                shop.discount!,
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.green[700],
@@ -221,7 +352,7 @@ class SearchResultsScreen extends StatelessWidget {
                                 ),
                               ),
                             ),
-                          if (freeDelivery)
+                          if (shop.freeDelivery)
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
@@ -246,8 +377,8 @@ class SearchResultsScreen extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        // Products Grid
+
+        // ✅ Products Grid (убран отступ сверху)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SizedBox(
@@ -269,76 +400,125 @@ class SearchResultsScreen extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        // ✅ Убран отступ между магазинами (было const SizedBox(height: 10))
       ],
     );
   }
 
-  // Product Card
-  Widget _buildProductCard(Map<String, String> product) {
+  // ✅ Карточка товара с интерактивным сердечком
+  Widget _buildProductCard(Product product) {
+    final isFavorite = _favoriteProductIds.contains(product.id);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[200]!),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Stack(
         children: [
-          // Product Image
-          Expanded(
-            flex: 3,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(12),
-                ),
-                child: Image.asset(
-                  product['image']!,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Product Image
+              Expanded(
+                flex: 3,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
+                    child: product.images.isNotEmpty
+                        ? Image.network(
+                      product.images.first,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.local_florist, color: Colors.grey),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      },
+                    )
+                        : Container(
                       color: Colors.grey[300],
                       child: const Icon(Icons.local_florist, color: Colors.grey),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
-            ),
+              // Price and Name
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        product.formattedPrice,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        product.name,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey[700],
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          // Price and Name
-          Expanded(
-            flex: 2,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    product['price']!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+
+          // ✅ Сердечко в правом верхнем углу
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: () => _toggleFavorite(product.id, product.name),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
                     ),
+                  ],
+                ),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    key: ValueKey<bool>(isFavorite),
+                    size: 18,
+                    color: isFavorite ? const Color(0xFFB07183) : Colors.grey,
                   ),
-                  Text(
-                    product['name']!,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: Colors.grey[700],
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                ),
               ),
             ),
           ),

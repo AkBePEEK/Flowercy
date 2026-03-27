@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../services/productService.dart';
+import '../../services/shopService.dart';
+import '../../services/userService.dart';
 import '../mainScreen.dart';
 import '../../widgets/flowerCatalogHeader.dart';
+import '../../models/product.dart';
+import '../../models/shop.dart';
 
 class FlowerCategoryScreen extends StatefulWidget {
   const FlowerCategoryScreen({super.key});
@@ -13,65 +18,20 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   String _selectedCategory = 'Flowers';
   bool _showFlowerFilterModal = false;
   int _currentFilterTab = 0;
+  Set<String> _favoriteProductIds = {};
 
-  final Map<String, List<Map<String, dynamic>>> _shopsByCategory = {
-    'Flowers': [
-      {
-        'name': 'Lui buton',
-        'category': 'FLOWERS | ASTANA | DELIVERY',
-        'deliveryTime': 'TOMORROW FROM 10:00',
-        'rating': 4.81,
-        'reviews': 711,
-        'delivery': 'Free',
-        'products': [
-          {'price': '14 500 ₸', 'image': 'assets/flowers/products/bouquet1.png'},
-          {'price': '7 000 ₸', 'image': 'assets/flowers/products/bouquet2.png'},
-          {'price': '22 000 ₸', 'image': 'assets/flowers/products/bouquet3.png'},
-          {'price': '24 000 ₸', 'image': 'assets/flowers/products/bouquet4.png'},
-          {'price': '32 500 ₸', 'image': 'assets/flowers/products/bouquet5.png'},
-          {'price': '19 500 ₸', 'image': 'assets/flowers/products/bouquet6.png'},
-        ],
-      },
-    ],
-    'Monobouquets': [
-      {
-        'name': 'Rose Garden',
-        'category': 'MONOBOUQUETS | ASTANA | DELIVERY',
-        'deliveryTime': 'TODAY FROM 12:00',
-        'rating': 4.90,
-        'reviews': 432,
-        'delivery': 'Free',
-        'products': [
-          {'price': '18 000 ₸', 'image': 'assets/products/bouquet1.png'},
-          {'price': '25 000 ₸', 'image': 'assets/products/bouquet2.png'},
-          {'price': '30 000 ₸', 'image': 'assets/products/bouquet3.png'},
-          {'price': '15 000 ₸', 'image': 'assets/products/bouquet4.png'},
-          {'price': '22 000 ₸', 'image': 'assets/products/bouquet5.png'},
-          {'price': '28 000 ₸', 'image': 'assets/products/bouquet6.png'},
-        ],
-      },
-    ],
-    'Signature': [
-      {
-        'name': 'Signature Flowers',
-        'category': 'SIGNATURE | ASTANA | DELIVERY',
-        'deliveryTime': 'TOMORROW FROM 14:00',
-        'rating': 4.75,
-        'reviews': 289,
-        'delivery': 'Free',
-        'products': [
-          {'price': '35 000 ₸', 'image': 'assets/products/bouquet1.png'},
-          {'price': '42 000 ₸', 'image': 'assets/products/bouquet2.png'},
-          {'price': '38 000 ₸', 'image': 'assets/products/bouquet3.png'},
-          {'price': '45 000 ₸', 'image': 'assets/products/bouquet4.png'},
-          {'price': '40 000 ₸', 'image': 'assets/products/bouquet5.png'},
-          {'price': '50 000 ₸', 'image': 'assets/products/bouquet6.png'},
-        ],
-      },
-    ],
-    // Добавьте остальные категории по аналогии...
-  };
+  // Сервисы
+  final ProductService _productService = ProductService();
+  final ShopService _shopService = ShopService();
+  final UserService _userService = UserService();
 
+  // Данные из Firestore
+  List<Shop> _shops = [];
+  List<Product> _products = [];
+  bool _isLoading = true;
+  String? _error;
+
+  // Фильтры
   final List<Map<String, dynamic>> _includedFlowers = [
     {'name': 'Roses', 'selected': false},
     {'name': 'Tulips', 'selected': false},
@@ -101,6 +61,126 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _loadFavorites();
+  }
+
+  // ✅ Загрузка данных из Firestore
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // Загружаем товары по категории
+      final products = await _productService.getProductsByCategory(_selectedCategory.toLowerCase());
+
+      // Группируем товары по магазинам
+      final shopIds = products.map((p) => p.shopId).toSet();
+      final shops = <Shop>[];
+
+      for (var shopId in shopIds) {
+        final shop = await _shopService.getShopById(shopId);
+        if (shop != null) shops.add(shop);
+      }
+
+      setState(() {
+        _products = products;
+        _shops = shops;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load data';
+        _isLoading = false;
+      });
+      print('❌ Error loading data: $e');
+    }
+  }
+
+  Future<void> _loadFavorites() async {
+    try {
+      final favorites = await _userService.getFavorites();
+      setState(() {
+        _favoriteProductIds = favorites.toSet();
+      });
+    } catch (e) {
+      print('❌ Error loading favorites: $e');
+    }
+  }
+
+  Future<void> _toggleFavorite(String productId, String productName) async {
+    final isFavorite = _favoriteProductIds.contains(productId);
+
+    try {
+      if (isFavorite) {
+        await _userService.removeFromFavorites(productId);
+        setState(() => _favoriteProductIds.remove(productId));
+        _showSnackBar('$productName removed from favorites');
+      } else {
+        await _userService.addToFavorites(productId);
+        setState(() => _favoriteProductIds.add(productId));
+        _showSnackBar('$productName added to favorites ❤️');
+      }
+    } catch (e) {
+      _showSnackBar('Error: ${e.toString()}');
+      print('❌ Error toggling favorite: $e');
+    }
+
+    if (!isFavorite) {
+      // Эффект пульсации (опционально)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.favorite, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text('$productName added to favorites'),
+            ],
+          ),
+          backgroundColor: const Color(0xFFB07183),
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ✅ Показать уведомление
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  // ✅ Перезагрузка при смене категории
+  void _onCategoryChanged(String category) {
+    setState(() {
+      _selectedCategory = category;
+    });
+    _loadData();
+  }
+
+  // ✅ Применение фильтров
+  void _applyFlowerFilters() {
+    final included = _includedFlowers.where((f) => f['selected'] == true).map((f) => f['name'] as String).toList();
+    final excluded = _excludedFlowers.where((f) => f['selected'] == true).map((f) => f['name'] as String).toList();
+
+    // 🔹 Здесь можно добавить фильтрацию на стороне клиента или сервера
+    // Для простоты пока просто закрываем модалку
+    setState(() => _showFlowerFilterModal = false);
+
+    print('🔍 Filters applied: included=$included, excluded=$excluded');
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -117,16 +197,30 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                     context,
                     MaterialPageRoute(builder: (context) => const MainScreen()),
                   ),
-                  onCategoryTap: (category) {
-                    setState(() => _selectedCategory = category);
-                  },
+                  onCategoryTap: _onCategoryChanged, // ✅ Обновлённый колбэк
                   onFlowerTypeTap: () {
                     setState(() => _showFlowerFilterModal = true);
                   },
                   selectedCategory: _selectedCategory,
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : _error != null
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(_error!, style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _loadData,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                      : SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -318,28 +412,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
     );
   }
 
-  void _applyFlowerFilters() {
-    final List<String> selectedIncluded = _includedFlowers
-        .where((f) => f['selected'] == true)
-        .map((f) => f['name'] as String)
-        .toList();
-
-    final List<String> selectedExcluded = _excludedFlowers
-        .where((f) => f['selected'] == true)
-        .map((f) => f['name'] as String)
-        .toList();
-
-    print('Included: $selectedIncluded');
-    print('Excluded: $selectedExcluded');
-
-    setState(() => _showFlowerFilterModal = false);
-  }
-  // Секция магазинов и товаров
   Widget _buildShopsSection() {
-    final shops = _shopsByCategory[_selectedCategory] ?? [];
-
-    // Если нет данных для категории
-    if (shops.isEmpty) {
+    // Если нет товаров для категории
+    if (_products.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(40),
@@ -348,11 +423,8 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
               Icon(Icons.local_florist, size: 80, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                'No shops available for $_selectedCategory',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                'No products available for $_selectedCategory',
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -361,32 +433,41 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
       );
     }
 
+    // Группируем товары по магазинам
+    final shopsWithProducts = <Shop, List<Product>>{};
+    for (var product in _products) {
+      final shop = _shops.firstWhere((s) => s.id == product.shopId, orElse: () => _shops.first);
+      if (!shopsWithProducts.containsKey(shop)) {
+        shopsWithProducts[shop] = [];
+      }
+      shopsWithProducts[shop]!.add(product);
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '1 shop nearby',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+          Text(
+            '${shopsWithProducts.length} shop${shopsWithProducts.length != 1 ? 's' : ''} nearby',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           // Список магазинов
-          ...shops.map((shop) => Padding(
+          ...shopsWithProducts.entries.map((entry) => Padding(
             padding: const EdgeInsets.only(bottom: 20),
-            child: _buildShopCard(shop),
+            child: _buildShopCard(entry.key, entry.value),
           )),
         ],
       ),
     );
   }
 
-// Карточка магазина
-  // Карточка магазина
-  Widget _buildShopCard(Map<String, dynamic> shop) {
+  // ✅ Карточка магазина с реальными данными
+  Widget _buildShopCard(Shop shop, List<Product> products) {
+    // Берём первые 6 товаров для сетки
+    final displayProducts = products.take(6).toList();
+
     return GestureDetector(
       onTap: () {
         // Переход на страницу магазина
@@ -422,39 +503,45 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Сетка товаров 2x3
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-
-                      // Первый ряд (3 товара)
-                      Row(
-                        children: [
-                          Expanded(child: _buildProductGridItem(shop['products'][0])),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildProductGridItem(shop['products'][1])),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildProductGridItem(shop['products'][2])),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Второй ряд (3 товара)
-                      Row(
-                        children: [
-                          Expanded(child: _buildProductGridItem(shop['products'][3])),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildProductGridItem(shop['products'][4])),
-                          const SizedBox(width: 8),
-                          Expanded(child: _buildProductGridItem(shop['products'][5])),
-                        ],
-                      ),
-
-                    ],
+                // Сетка товаров 2x3 (только если есть товары)
+                if (displayProducts.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        // Первый ряд
+                        Row(
+                          children: [
+                            Expanded(child: _buildProductGridItem(displayProducts[0])),
+                            if (displayProducts.length > 1) ...[
+                              const SizedBox(width: 8),
+                              Expanded(child: _buildProductGridItem(displayProducts[1])),
+                            ],
+                            if (displayProducts.length > 2) ...[
+                              const SizedBox(width: 8),
+                              Expanded(child: _buildProductGridItem(displayProducts[2])),
+                            ],
+                          ],
+                        ),
+                        if (displayProducts.length > 3) const SizedBox(height: 8),
+                        // Второй ряд
+                        if (displayProducts.length > 3)
+                          Row(
+                            children: [
+                              Expanded(child: _buildProductGridItem(displayProducts[3])),
+                              if (displayProducts.length > 4) ...[
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildProductGridItem(displayProducts[4])),
+                              ],
+                              if (displayProducts.length > 5) ...[
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildProductGridItem(displayProducts[5])),
+                              ],
+                            ],
+                          ),
+                      ],
+                    ),
                   ),
-                ),
 
                 // Информация о магазине
                 Padding(
@@ -462,82 +549,56 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
                       // Название и время доставки
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            shop['name'],
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            shop.name,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
-                              shop['deliveryTime'],
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            child: const Text(
+                              'Today, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 6),
-
                       // Категория
                       Text(
-                        shop['category'],
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        '${_selectedCategory.toUpperCase()} | ASTANA | DELIVERY',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 12),
-
                       // Рейтинг и доставка
                       Row(
                         children: [
                           const Icon(Icons.star, color: Colors.amber, size: 20),
                           const SizedBox(width: 4),
                           Text(
-                            shop['rating'].toString(),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                            '${shop.rating}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                           Text(
-                            ' (${shop['reviews']})',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
+                            ' (${shop.reviews})',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
                           ),
                           const Spacer(),
                           const Icon(Icons.local_shipping, size: 18),
                           const SizedBox(width: 4),
                           Text(
-                            shop['delivery'],
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
+                            shop.freeDelivery ? 'Free' : 'Paid',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                         ],
                       ),
-
                     ],
                   ),
                 ),
@@ -548,35 +609,43 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
             Positioned(
               top: 20,
               right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.favorite_border,
-                  size: 20,
-                  color: Colors.grey,
+              child: GestureDetector(
+                onTap: () {
+                  // 🔹 Для магазинов нужно отдельное поле в User модели
+                  // Пока показываем заглушку
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Shop favorites coming soon!')),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.favorite_border,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
                 ),
               ),
             ),
-
           ],
         ),
       ),
     );
   }
 
-// Товар в сетке
-  Widget _buildProductGridItem(Map<String, dynamic> product) {
+  // Товар в сетке (из модели Product)
+  Widget _buildProductGridItem(Product product) {
     return AspectRatio(
       aspectRatio: 1,
       child: Container(
@@ -586,24 +655,27 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
         ),
         child: Stack(
           children: [
-
             // Изображение товара
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
-                product['image'],
+              child: product.images.isNotEmpty
+                  ? Image.network(
+                product.images.first,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.local_florist,
-                      color: Colors.grey,
-                      size: 40,
-                    ),
+                    child: const Icon(Icons.local_florist, color: Colors.grey, size: 40),
                   );
                 },
-              ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  );
+                },
+              )
+                  : const Icon(Icons.local_florist, color: Colors.grey, size: 40),
             ),
 
             // Цена
@@ -618,7 +690,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  product['price'],
+                  product.formattedPrice, // ✅ "42480 ₸"
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -628,7 +700,6 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                 ),
               ),
             ),
-
           ],
         ),
       ),
