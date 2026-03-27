@@ -169,15 +169,15 @@ class SignUpScreen extends StatelessWidget {
                 offset: const Offset(-70, 0), // 30px за экраном
                 child: Row(
                   children: [
-                    _buildFlowerImage('assets/flowers/flower1.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower1.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower2.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower2.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower3.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower3.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower4.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower4.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower5.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower5.png', width: 100),
                   ]
                 ),
               )
@@ -196,13 +196,13 @@ class SignUpScreen extends StatelessWidget {
                 offset: const Offset(-30, 0), // 30px за экраном
                 child: Row(
                     children: [
-                      _buildFlowerImage('assets/flowers/flower6.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower6.png', width: 100),
                       const SizedBox(width: 10),
-                      _buildFlowerImage('assets/flowers/flower7.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower7.png', width: 100),
                       const SizedBox(width: 10),
-                      _buildFlowerImage('assets/flowers/flower8.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower8.png', width: 100),
                       const SizedBox(width: 10),
-                      _buildFlowerImage('assets/flowers/flower9.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower9.png', width: 100),
                     ]
                 ),
               )

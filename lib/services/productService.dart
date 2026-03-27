@@ -7,45 +7,71 @@ class ProductService {
 
   // ✅ Получить все товары
   Future<List<Product>> getAllProducts() async {
-    final snapshot = await _firestore.collection(_collection).get();
-    return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    try {
+      final snapshot = await _firestore.collection(_collection).get();
+      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('❌ Error fetching products: $e');
+      return [];
+    }
   }
 
   // ✅ Получить товары по категории
   Future<List<Product>> getProductsByCategory(String category) async {
-    final snapshot = await _firestore
-        .collection(_collection)
-        .where('category', isEqualTo: category)
-        .get();
-    return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('category', isEqualTo: category)
+          .get();
+      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('❌ Error fetching products by category: $e');
+      return [];
+    }
   }
 
-  // ✅ Поиск товаров по названию
-  Future<List<Product>> searchProducts(String query) async {
+  // ✅ НОВЫЙ МЕТОД: Получить товары конкретного магазина
+  Future<List<Product>> getProductsByShop(String shopId) async {
     try {
-      final snapshot = await _firestore.collection(_collection).get();
-      final allProducts = snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('shopId', isEqualTo: shopId)
+          .get();
 
-      // Фильтрация на клиенте
-      return allProducts.where((product) {
-        final name = product.name.toLowerCase();
-        final desc = product.description.toLowerCase();
-        final searchQuery = query.toLowerCase();
-
-        return name.contains(searchQuery) || desc.contains(searchQuery);
-      }).toList();
+      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
     } catch (e) {
-      print('❌ Error searching products: $e');
+      print('❌ Error fetching products by shop: $e');
       return [];
     }
   }
 
   // ✅ Получить товар по ID
   Future<Product?> getProductById(String id) async {
-    final doc = await _firestore.collection(_collection).doc(id).get();
-    if (doc.exists) {
-      return Product.fromFirestore(doc);
+    try {
+      final doc = await _firestore.collection(_collection).doc(id).get();
+      if (doc.exists) {
+        return Product.fromFirestore(doc);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error fetching product: $e');
+      return null;
     }
-    return null;
+  }
+
+  // ✅ Поиск товаров
+  Future<List<Product>> searchProducts(String query) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collection)
+          .where('name', isGreaterThanOrEqualTo: query)
+          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
+          .get();
+
+      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    } catch (e) {
+      print('❌ Error searching products: $e');
+      return [];
+    }
   }
 }
