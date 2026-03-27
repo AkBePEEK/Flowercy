@@ -1,3 +1,4 @@
+import 'package:flowery_app/screens/categoryScreens/shopDetail.dart';
 import 'package:flutter/material.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
@@ -471,12 +472,12 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
     return GestureDetector(
       onTap: () {
         // Переход на страницу магазина
-        // Navigator.push(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (context) => ShopDetailScreen(shop: shop),
-        //   ),
-        // );
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ShopDetailScreen(shopId: shop.id),
+          ),
+        );
       },
       child: Container(
         decoration: BoxDecoration(
