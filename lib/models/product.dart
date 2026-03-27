@@ -42,7 +42,7 @@ class Product {
       description: data['description'] ?? '',
       images: List<String>.from(data['images'] ?? []),
       shopId: data['shopId'] ?? '',
-      category: data['category'] ?? '',
+      category: data['category'] ?? 'flowers',
       rating: (data['rating'] ?? 0).toDouble(),
       reviews: data['reviews'] ?? 0,
       discount: data['discount'],

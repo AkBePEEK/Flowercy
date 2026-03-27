@@ -1,8 +1,71 @@
 import 'package:flutter/material.dart';
+import '../../models/cartItem.dart';
+import '../../services/userService.dart';
 import '../orderScreens/orderDetails.dart';
 
-class CartScreen extends StatelessWidget {
+class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
+
+  @override
+  State<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends State<CartScreen> {
+  final UserService _userService = UserService();
+
+  // ✅ Состояния для корзины
+  List<CartItem> _cartItems = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCart();
+  }
+
+  // ✅ Загрузка корзины из Firestore
+  Future<void> _loadCart() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final user = await _userService.getCurrentUser();
+      setState(() {
+        _cartItems = user?.cart ?? [];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load cart';
+        _isLoading = false;
+      });
+      print('❌ Error loading cart: $e');
+    }
+  }
+
+  // ✅ Обновление количества товара
+  Future<void> _updateQuantity(CartItem item, int newQuantity) async {
+    if (newQuantity <= 0) {
+      await _removeFromCart(item.productId);
+    } else {
+      await _userService.updateCartItemQuantity(item.productId, newQuantity);
+      _loadCart(); // Перезагрузить корзину
+    }
+  }
+
+  // ✅ Удаление товара из корзины
+  Future<void> _removeFromCart(String productId) async {
+    await _userService.removeFromCart(productId);
+    _loadCart();
+  }
+
+  // ✅ Подсчёт общей суммы
+  int get _totalPrice {
+    return _cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,31 +83,54 @@ class CartScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          // ✅ Кнопка очистки корзины (если есть товары)
+          if (_cartItems.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.grey),
+              onPressed: () => _showClearCartDialog(),
+            ),
+        ],
       ),
       body: Column(
         children: [
           Expanded(
-            child: SingleChildScrollView(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadCart,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+                : _cartItems.isEmpty
+                ? _buildEmptyCart() // ✅ Пустая корзина
+                : SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Товар
-                  _buildProductItem(),
+                  // ✅ Список товаров из корзины
+                  ..._cartItems.map((item) => _buildProductItem(item)),
                   const SizedBox(height: 16),
 
-                  // Комментарий
                   _buildCommentSection(),
                   const SizedBox(height: 24),
 
-                  // People add to the order
                   _buildPeopleAddSection(),
                   const SizedBox(height: 24),
 
-                  // Промокод
                   _buildPromocodeSection(),
                   const SizedBox(height: 24),
 
-                  // Итоговая цена
+                  // ✅ Динамическая цена
                   _buildPriceSummary(),
                   const SizedBox(height: 100),
                 ],
@@ -52,17 +138,55 @@ class CartScreen extends StatelessWidget {
             ),
           ),
 
-          // Кнопка
+          // ✅ Кнопка с динамической ценой
           _buildBottomButton(context),
         ],
       ),
     );
   }
 
-  // Товар
-  Widget _buildProductItem() {
+  // ✅ Экран пустой корзины
+  Widget _buildEmptyCart() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            'Your cart is empty',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Add some flowers to get started',
+            style: TextStyle(fontSize: 14, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              // Перейти на главную или каталог
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB07183),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Browse flowers'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Товар корзины (динамический)
+  Widget _buildProductItem(CartItem item) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           // Изображение
@@ -73,6 +197,18 @@ class CartScreen extends StatelessWidget {
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(8),
             ),
+            child: item.image != null
+                ? ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                item.image!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Icon(Icons.local_florist, color: Colors.grey);
+                },
+              ),
+            )
+                : const Icon(Icons.local_florist, color: Colors.grey),
           ),
           const SizedBox(width: 12),
           // Информация
@@ -80,9 +216,9 @@ class CartScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Rose bouquet',
-                  style: TextStyle(
+                Text(
+                  item.name,
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -90,12 +226,9 @@ class CartScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    // Количество
+                    // Количество с кнопками +/-
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.grey[200],
                         borderRadius: BorderRadius.circular(6),
@@ -104,22 +237,24 @@ class CartScreen extends StatelessWidget {
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove, size: 16),
-                            onPressed: () {},
+                            onPressed: () => _updateQuantity(item, item.quantity - 1),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            '1',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
+                          SizedBox(
+                            width: 24,
+                            child: Text(
+                              '${item.quantity}',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          const SizedBox(width: 8),
                           IconButton(
                             icon: const Icon(Icons.add, size: 16),
-                            onPressed: () {},
+                            onPressed: () => _updateQuantity(item, item.quantity + 1),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -128,9 +263,9 @@ class CartScreen extends StatelessWidget {
                     ),
                     const Spacer(),
                     // Цена
-                    const Text(
-                      '42 480₸',
-                      style: TextStyle(
+                    Text(
+                      '${item.price * item.quantity}₸',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                       ),
@@ -140,18 +275,25 @@ class CartScreen extends StatelessWidget {
               ],
             ),
           ),
+          // ✅ Кнопка удаления
+          IconButton(
+            icon: const Icon(Icons.close, size: 20, color: Colors.grey),
+            onPressed: () => _removeFromCart(item.productId),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
         ],
       ),
     );
   }
 
-  // Комментарий
+  // Комментарий (без изменений, можно добавить сохранение в будущем)
   Widget _buildCommentSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFFE9ECEC),
+        color: const Color(0xFFE9ECEC),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -159,19 +301,13 @@ class CartScreen extends StatelessWidget {
         children: [
           const Text(
             'Comment for the seller',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           Row(
             children: [
               const Text(
                 'Add',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 4),
               const Icon(Icons.chevron_right, size: 16),
@@ -182,7 +318,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // People add to the order
+  // People add to the order (можно сделать интерактивным позже)
   Widget _buildPeopleAddSection() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -191,10 +327,7 @@ class CartScreen extends StatelessWidget {
         children: [
           const Text(
             'People add to the order',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Container(
@@ -205,7 +338,6 @@ class CartScreen extends StatelessWidget {
             ),
             child: Column(
               children: [
-                // Логотип
                 Container(
                   width: 150,
                   height: 150,
@@ -222,7 +354,6 @@ class CartScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                // Информация и чекбокс
                 Row(
                   children: [
                     Expanded(
@@ -231,23 +362,16 @@ class CartScreen extends StatelessWidget {
                         children: [
                           const Text(
                             'Postcard',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 4),
                           const Text(
                             '0₸',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
                     ),
-                    // Чекбокс
                     Container(
                       width: 24,
                       height: 24,
@@ -267,13 +391,13 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // Промокод
+  // Промокод (можно добавить функционал позже)
   Widget _buildPromocodeSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Color(0xFFE9ECEC),
+        color: const Color(0xFFE9ECEC),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -284,18 +408,12 @@ class CartScreen extends StatelessWidget {
               children: [
                 const Text(
                   'Promocode',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'You have one promocode',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -304,10 +422,7 @@ class CartScreen extends StatelessWidget {
             children: [
               const Text(
                 'Use',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 4),
               const Icon(Icons.chevron_right, size: 16),
@@ -318,7 +433,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // Итоговая цена
+  // ✅ Итоговая цена (динамическая)
   Widget _buildPriceSummary() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -329,17 +444,11 @@ class CartScreen extends StatelessWidget {
             children: [
               const Text(
                 'Price',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
-              const Text(
-                '42 480₸',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+              Text(
+                '$_totalPrice₸', // ✅ Динамическая цена
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -349,17 +458,26 @@ class CartScreen extends StatelessWidget {
             children: [
               const Text(
                 'Delivery',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const Text(
                 '0₸',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+          // ✅ Общая сумма
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              Text(
+                '$_totalPrice₸', // ✅ Динамическая сумма
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -368,7 +486,7 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // Кнопка
+  // ✅ Кнопка с проверкой пустой корзины
   Widget _buildBottomButton(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -384,16 +502,23 @@ class CartScreen extends StatelessWidget {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: () {
+          onPressed: _cartItems.isEmpty
+              ? null // ✅ Блокировать если корзина пуста
+              : () {
             Navigator.push(
               context,
-                MaterialPageRoute(
-                  builder: (context) => OrderDetailsScreen(),
+              MaterialPageRoute(
+                builder: (context) => OrderDetailsScreen(
+                  cartItems: _cartItems, // ✅ Передаём товары в заказ
+                  total: _totalPrice,    // ✅ Передаём сумму
                 ),
+              ),
             );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFB07183),
+            backgroundColor: _cartItems.isEmpty
+                ? Colors.grey[400]
+                : const Color(0xFFB07183),
             foregroundColor: Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(
@@ -401,14 +526,43 @@ class CartScreen extends StatelessWidget {
             ),
             minimumSize: const Size(double.infinity, 50),
           ),
-          child: const Text(
-            'Go to checkout',
-            style: TextStyle(
+          child: Text(
+            _cartItems.isEmpty ? 'Cart is empty' : 'Go to checkout',
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // ✅ Диалог подтверждения очистки корзины
+  void _showClearCartDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear cart?'),
+        content: const Text('Remove all items from your cart?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _userService.clearCart();
+              _loadCart();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Clear'),
+          ),
+        ],
       ),
     );
   }

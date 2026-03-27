@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide User;
+import '../models/cartItem.dart';
 import '../models/user.dart';
 
 class UserService {
@@ -62,6 +63,23 @@ class UserService {
     await _firestore.collection(_collection).doc(userId).update(updates);
   }
 
+  Future<List<String>> getFavorites() async {
+    final userId = currentUserId;
+    if (userId == null) return [];
+
+    try {
+      final doc = await _firestore.collection(_collection).doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data();
+        return List<String>.from(data?['favorites'] ?? []);
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching favorites: $e');
+      return [];
+    }
+  }
+
   // ✅ Добавить в избранное
   Future<void> addToFavorites(String productId) async {
     final userId = currentUserId;
@@ -86,8 +104,8 @@ class UserService {
 
   // ✅ Проверить, в избранном ли товар
   Future<bool> isFavorite(String productId) async {
-    final user = await getCurrentUser();
-    return user?.favorites.contains(productId) ?? false;
+    final favorites = await getFavorites();
+    return favorites.contains(productId);
   }
 
   // ✅ Добавить товар в корзину

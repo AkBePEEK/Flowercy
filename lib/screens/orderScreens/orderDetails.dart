@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../models/cartItem.dart';
 import 'courierComment.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
-  const OrderDetailsScreen({super.key});
+  const OrderDetailsScreen({super.key, required List<CartItem> cartItems, required int total});
 
   @override
   State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();

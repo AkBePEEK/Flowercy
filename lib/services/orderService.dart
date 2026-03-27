@@ -13,6 +13,20 @@ class OrderService {
     return docRef.id;
   }
 
+  Stream<List<Order>> getUserOrdersStream() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value([]);
+
+    return _firestore
+        .collection(_collection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => Order.fromFirestore(doc)) // ✅ Без лишнего cast
+        .toList());
+  }
+
   // ✅ Получить заказы текущего пользователя
   Future<List<Order>> getUserOrders() async {
     final userId = _auth.currentUser?.uid;
@@ -24,14 +38,15 @@ class OrderService {
         .orderBy('createdAt', descending: true)
         .get();
 
-    return snapshot.docs.map((doc) => Order.fromFirestore(doc as DocumentSnapshot<Object?>)).toList();
+    // ✅ doc уже имеет правильный тип, cast не нужен
+    return snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList();
   }
 
   // ✅ Получить заказ по ID
   Future<Order?> getOrderById(String orderId) async {
     final doc = await _firestore.collection(_collection).doc(orderId).get();
     if (doc.exists) {
-      return Order.fromFirestore(doc as DocumentSnapshot<Object?>);
+      return Order.fromFirestore(doc); // ✅ Без cast
     }
     return null;
   }

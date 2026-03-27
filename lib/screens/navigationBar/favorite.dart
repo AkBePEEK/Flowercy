@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../models/product.dart';
+import '../../models/shop.dart';
+import '../../services/productService.dart';
+import '../../services/shopService.dart';
+import '../../services/userService.dart';
+
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
 
@@ -10,66 +16,82 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Пример данных - букеты
-  final List<Map<String, dynamic>> _favoriteBouquets = [
-    {
-      'price': '43 990₸',
-      'name': 'Celine',
-      'description': 'Mono-bouquet of premium Columbus peony tulips in a powder pink hat box',
-      'image': 'assets/flowers/products/red_roses.png',
-    },
-    {
-      'price': '21 000₸',
-      'name': 'Rosalie',
-      'description': 'Classic red rose arrangement with eucalyptus in a branded white hat box',
-      'image': 'assets/flowers/products/pink_roses.png',
-    },
-    {
-      'price': '30 550₸',
-      'name': 'Flora',
-      'description': 'Bespoke pink arrangement featuring Oriental lilies, spray chrysanthemums, and gypsophila with euca...',
-      'image': 'assets/flowers/products/white_roses.png',
-    },
-  ];
+  // ✅ Сервисы
+  final UserService _userService = UserService();
+  final ProductService _productService = ProductService();
+  final ShopService _shopService = ShopService();
 
-  // Пример данных - магазины
-  final List<Map<String, dynamic>> _favoriteMarkets = [
-    {
-      'name': 'Cvetasto',
-      'rating': 4.9,
-      'reviews': 931,
-      'image': 'assets/shops/cvetasto.png',
-      'discount': '25% off select items',
-      'freeDelivery': true,
-    },
-    {
-      'name': 'Flowerhub',
-      'rating': 4.8,
-      'reviews': 378,
-      'image': 'assets/shops/flowerhub.png',
-      'discount': '30% off select items',
-      'freeDelivery': false,
-    },
-    {
-      'name': 'Romeo',
-      'rating': 4.7,
-      'reviews': 872,
-      'image': 'assets/shops/romeo.png',
-      'discount': '25% off select items',
-      'freeDelivery': true,
-    },
-  ];
+  // ✅ Данные из Firestore
+  List<Product> _favoriteProducts = [];
+  List<Shop> _favoriteShops = [];
+
+  // ✅ Состояния
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _loadFavorites(); // ✅ Загружаем данные при открытии
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  // ✅ Загрузка избранного из Firestore
+  Future<void> _loadFavorites() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      // 1. Получаем список избранных товаров (их ID)
+      final favoriteIds = await _userService.getFavorites();
+
+      // 2. Загружаем детали каждого товара
+      final products = <Product>[];
+      for (var id in favoriteIds) {
+        final product = await _productService.getProductById(id);
+        if (product != null) {
+          products.add(product);
+        }
+      }
+
+      // 🔹 Для магазинов: можно хранить отдельно или фильтровать по категории
+      // Пока загружаем все магазины (в реальном проекте добавьте избранное для магазинов)
+      final shops = await _shopService.getAllShops();
+
+      setState(() {
+        _favoriteProducts = products;
+        _favoriteShops = shops.take(3).toList(); // Пример: первые 3 магазина
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load favorites';
+        _isLoading = false;
+      });
+      print('❌ Error loading favorites: $e');
+    }
+  }
+
+  // ✅ Удаление из избранного
+  Future<void> _removeFromFavorites(String productId, String name) async {
+    await _userService.removeFromFavorites(productId);
+    _loadFavorites(); // Перезагрузить список
+
+    // Показать подтверждение
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$name removed from favorites'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
@@ -88,6 +110,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
           ),
         ),
         centerTitle: true,
+        actions: [
+          // ✅ Кнопка обновления
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadFavorites,
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -179,7 +208,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
           // Контент табов
           Expanded(
-            child: TabBarView(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadFavorites,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
+                : TabBarView(
               controller: _tabController,
               children: [
                 // Вкладка Bouquets
@@ -196,19 +241,39 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // Вкладка с букетами
   Widget _buildBouquetsTab() {
-    return ListView.separated(
+    return _favoriteProducts.isEmpty
+        ? Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.favorite_border, size: 60, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            'No favorite bouquets yet',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap the heart icon on any bouquet to save it',
+            style: TextStyle(fontSize: 13, color: Colors.grey[400]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    )
+        : ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _favoriteBouquets.length,
+      itemCount: _favoriteProducts.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final bouquet = _favoriteBouquets[index];
-        return _buildBouquetItem(bouquet);
+        final product = _favoriteProducts[index];
+        return _buildBouquetItem(product);
       },
     );
   }
 
-  // Элемент букета
-  Widget _buildBouquetItem(Map<String, dynamic> bouquet) {
+  // Элемент букета (из модели Product)
+  Widget _buildBouquetItem(Product product) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -228,16 +293,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                bouquet['image'],
+              child: product.images.isNotEmpty
+                  ? Image.network(
+                product.images.first,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.local_florist, color: Colors.grey),
+                  return const Icon(Icons.local_florist, color: Colors.grey);
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   );
                 },
-              ),
+              )
+                  : const Icon(Icons.local_florist, color: Colors.grey),
             ),
           ),
           const SizedBox(width: 12),
@@ -247,28 +317,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bouquet['price'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  product.formattedPrice, // ✅ "42480 ₸"
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  bouquet['name'],
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  product.name,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  bouquet['description'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    height: 1.3,
-                  ),
+                  product.description,
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600], height: 1.3),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -276,14 +336,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             ),
           ),
           const SizedBox(width: 8),
-          // Сердечко
+          // Сердечко (удалить из избранного)
           GestureDetector(
-            onTap: () {
-              // Удалить из избранного
-              print('❤️ Remove from favorites: ${bouquet['name']}');
-            },
+            onTap: () => _removeFromFavorites(product.id, product.name),
             child: const Icon(
-              Icons.favorite,
+              Icons.favorite, // ✅ Заполненное = в избранном
               color: Color(0xFFB07183),
               size: 24,
             ),
@@ -295,19 +352,33 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // Вкладка с магазинами
   Widget _buildMarketsTab() {
-    return ListView.separated(
+    return _favoriteShops.isEmpty
+        ? Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.store_outlined, size: 60, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            'No favorite markets yet',
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    )
+        : ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      itemCount: _favoriteMarkets.length,
+      itemCount: _favoriteShops.length,
       separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final market = _favoriteMarkets[index];
-        return _buildMarketItem(market);
+        final shop = _favoriteShops[index];
+        return _buildMarketItem(shop);
       },
     );
   }
 
-  // Элемент магазина
-  Widget _buildMarketItem(Map<String, dynamic> market) {
+  // Элемент магазина (из модели Shop)
+  Widget _buildMarketItem(Shop shop) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -327,13 +398,19 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                market['image'],
+              child: Image.network(
+                shop.image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[300],
                     child: const Icon(Icons.store, color: Colors.grey),
+                  );
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   );
                 },
               ),
@@ -346,30 +423,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  market['name'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  shop.name,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
                     const Icon(Icons.star, color: Colors.amber, size: 16),
                     const SizedBox(width: 4),
-                    Text(
-                      '${market['rating']}/5 rating',
-                      style: const TextStyle(fontSize: 13),
-                    ),
+                    Text('${shop.rating}/5 rating', style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 8),
                     const Text('•', style: TextStyle(fontSize: 12)),
                     const SizedBox(width: 8),
                     const Icon(Icons.chat_bubble_outline, size: 14),
                     const SizedBox(width: 4),
-                    Text(
-                      '${market['reviews']} review',
-                      style: const TextStyle(fontSize: 13),
-                    ),
+                    Text('${shop.reviews} review', style: const TextStyle(fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -377,7 +445,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                   spacing: 6,
                   runSpacing: 6,
                   children: [
-                    if (market['discount'] != null)
+                    if (shop.discount != null)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -385,15 +453,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          market['discount'],
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.green[700],
-                            fontWeight: FontWeight.w500,
-                          ),
+                          shop.discount!,
+                          style: TextStyle(fontSize: 11, color: Colors.green[700], fontWeight: FontWeight.w500),
                         ),
                       ),
-                    if (market['freeDelivery'])
+                    if (shop.freeDelivery)
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
@@ -402,11 +466,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                         ),
                         child: Text(
                           'Free delivery',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.pink[700],
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: TextStyle(fontSize: 11, color: Colors.pink[700], fontWeight: FontWeight.w500),
                         ),
                       ),
                   ],
@@ -415,11 +475,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             ),
           ),
           const SizedBox(width: 8),
-          // Сердечко
+          // Сердечко (для магазинов можно добавить отдельное избранное)
           GestureDetector(
             onTap: () {
-              // Удалить из избранного
-              print('❤️ Remove from favorites: ${market['name']}');
+              // В реальном проекте: удалить магазин из избранного
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Feature coming soon!')),
+              );
             },
             child: const Icon(
               Icons.favorite,
