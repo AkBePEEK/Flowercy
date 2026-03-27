@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../services/userService.dart';
 import '../orderScreens/myOrder.dart';
 import '../../models/user.dart'; // Ваша модель
+import '../savedAddresses.dart';
 import '../signIn.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -276,8 +277,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Saved addresses',
             hasArrow: true,
             onTap: () {
-              // 🔹 Перейти на экран адресов
-              print('📍 Saved addresses');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SavedAddressesScreen(),
+                ),
+              );
             },
           ),
           const Divider(height: 1, indent: 16),
