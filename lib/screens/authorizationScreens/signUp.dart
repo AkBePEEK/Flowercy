@@ -60,7 +60,12 @@ class SignUpScreen extends StatelessWidget {
                     _buildSocialButton(
                       icon: Icons.g_mobiledata,
                       text: 'Sign Up with Google',
-                      onPressed: () {},
+                      onPressed: () async {
+                        final result = await AuthService().signInWithGoogle();
+                        if (result != null && context.mounted) {
+                          context.goNamed(AppRoute.main);
+                        }
+                      },
                       iconColor: Colors.blue,
                     ),
 
