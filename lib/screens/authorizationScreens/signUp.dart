@@ -1,6 +1,8 @@
-import 'package:flowery_app/screens/signIn.dart';
-import 'package:flowery_app/screens/signUpEmail.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../router/app_router.dart';
+import '../../services/auth_service.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({super.key});
@@ -91,10 +93,8 @@ class SignUpScreen extends StatelessWidget {
                       ),
                       child: TextButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const SignUpEmailScreen()),
-                          );
+                          AuthService().signOut();
+                          context.goNamed(AppRoute.signUpEmail);
                         },
                         icon: const Icon(
                           Icons.email_outlined,
@@ -128,10 +128,8 @@ class SignUpScreen extends StatelessWidget {
                         GestureDetector(
                           onTap: () {
                             // Переход на страницу входа
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const SignInScreen()),
-                            );
+                            AuthService().signOut();
+                            context.goNamed(AppRoute.signIn);  // ✅ Автоматически на вход
                           },
                           child: const Text(
                             'Sign in',
