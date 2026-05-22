@@ -1,10 +1,23 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import '../../models/cartItem.dart';
+import '../../models/order.dart';
+import '../../models/orderItem.dart';
+import '../../services/notificationService.dart';
+import '../../services/orderService.dart';
+import '../../services/userService.dart';
 import 'courierComment.dart';
+import 'orderInProgress.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
-  const OrderDetailsScreen({super.key, required List<CartItem> cartItems, required int total});
+  final List<CartItem> cartItems;
+  final int total;
+
+  const OrderDetailsScreen({
+    super.key,
+    required this.cartItems,
+    required this.total,
+  });
 
   @override
   State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
@@ -464,6 +477,70 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
+  bool _isPlacingOrder = false;
+
+  Future<void> _placeOrder() async {
+    setState(() => _isPlacingOrder = true);
+
+    try {
+      final userId = FirebaseAuth.instance.currentUser?.uid;
+      if (userId == null) return;
+
+      final order = Order(
+        id: '',
+        userId: userId,
+        items: widget.cartItems.map((item) => OrderItem(
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+        )).toList(),
+        total: widget.total,
+        status: 'placed',
+        recipient: '', // 🔹 Позже заполнишь из профиля пользователя
+        address: 'Astana, Uly Dala Avenue, 31', // 🔹 Позже из сохранённых адресов
+        deliveryTime: _deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
+        payment: _paymentOptions[_selectedPaymentIndex]['title']!,
+        comment: _courierComment == 'Add' ? null : _courierComment,
+        createdAt: DateTime.now(),
+      );
+
+      final orderId = await OrderService().createOrder(order);
+      await UserService().clearCart();
+
+      await NotificationService().addNotification(
+        title: 'Order placed!',
+        body: 'Your order №${orderId.substring(0, 8).toUpperCase()} has been placed successfully.',
+        orderId: orderId,
+      );
+
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderInProgressScreen(
+              orderNumber: '№${orderId.substring(0, 8).toUpperCase()}',
+              orderId: orderId, // ← добавь
+              status: 'placed',
+            ),
+          ),
+              (route) => route.isFirst,
+        );
+      }
+    } catch (e) {
+      print('❌ Error placing order: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to place order. Try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isPlacingOrder = false);
+    }
+  }
+
   Widget _buildBottomSection(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -482,6 +559,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
               children: [
                 const Text(
                   'Total',
@@ -499,28 +577,27 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 ),
               ],
             ),
+
             const SizedBox(height: 16),
+
             ElevatedButton(
-              onPressed: () {
-                print('💳 Pay for order');
-                print('🚚 Delivery: ${_deliveryOptions[_selectedDeliveryIndex]['title']}');
-                print('💰 Payment: ${_paymentOptions[_selectedPaymentIndex]['title']}');
-              },
+              onPressed: _isPlacingOrder ? null : _placeOrder,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB07183),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 minimumSize: const Size(double.infinity, 50),
               ),
-              child: const Text(
-                'Pay for the order',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: _isPlacingOrder
+                  ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+                  : Text(
+                'Pay for the order  ${widget.total} ₸', // ← динамическая цена
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],

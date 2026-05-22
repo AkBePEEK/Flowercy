@@ -1,6 +1,9 @@
-import 'package:flowery_app/screens/signIn.dart';
-import 'package:flowery_app/screens/signUpEmail.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flutter/foundation.dart';
+import '../../router/app_router.dart';
+import '../../services/auth_service.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({super.key});
@@ -46,19 +49,31 @@ class SignUpScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     // Apple Sign Up Button
-                    _buildSocialButton(
-                      icon: Icons.apple,
-                      text: 'Sign Up with Apple',
-                      onPressed: () {},
-                    ),
+                    if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                      _buildSocialButton(
+                        icon: Icons.apple,
+                        text: 'Sign Up with Apple',
+                        onPressed: () async {
+                          final result = await AuthService().signInWithApple();
+                          if (result != null && context.mounted) {
+                            context.goNamed(AppRoute.main);
+                          }
+                        },
+                      ),
+                    ],
 
                     const SizedBox(height: 16),
 
                     // Google Sign Up Button
                     _buildSocialButton(
-                      icon: Icons.g_mobiledata,
+                      icon: FontAwesomeIcons.google,
                       text: 'Sign Up with Google',
-                      onPressed: () {},
+                      onPressed: () async {
+                        final result = await AuthService().signInWithGoogle();
+                        if (result != null && context.mounted) {
+                          context.goNamed(AppRoute.main);
+                        }
+                      },
                       iconColor: Colors.blue,
                     ),
 
@@ -91,10 +106,8 @@ class SignUpScreen extends StatelessWidget {
                       ),
                       child: TextButton.icon(
                         onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const SignUpEmailScreen()),
-                          );
+                          AuthService().signOut();
+                          context.goNamed(AppRoute.signUpEmail);
                         },
                         icon: const Icon(
                           Icons.email_outlined,
@@ -128,10 +141,8 @@ class SignUpScreen extends StatelessWidget {
                         GestureDetector(
                           onTap: () {
                             // Переход на страницу входа
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const SignInScreen()),
-                            );
+                            AuthService().signOut();
+                            context.goNamed(AppRoute.signIn);  // ✅ Автоматически на вход
                           },
                           child: const Text(
                             'Sign in',
@@ -169,15 +180,15 @@ class SignUpScreen extends StatelessWidget {
                 offset: const Offset(-70, 0), // 30px за экраном
                 child: Row(
                   children: [
-                    _buildFlowerImage('assets/flowers/flower1.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower1.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower2.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower2.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower3.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower3.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower4.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower4.png', width: 100),
                     const SizedBox(width: 10),
-                    _buildFlowerImage('assets/flowers/flower5.png', width: 100),
+                    _buildFlowerImage('assets/flowers/signUpScreen/flower5.png', width: 100),
                   ]
                 ),
               )
@@ -196,13 +207,13 @@ class SignUpScreen extends StatelessWidget {
                 offset: const Offset(-30, 0), // 30px за экраном
                 child: Row(
                     children: [
-                      _buildFlowerImage('assets/flowers/flower6.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower6.png', width: 100),
                       const SizedBox(width: 10),
-                      _buildFlowerImage('assets/flowers/flower7.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower7.png', width: 100),
                       const SizedBox(width: 10),
-                      _buildFlowerImage('assets/flowers/flower8.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower8.png', width: 100),
                       const SizedBox(width: 10),
-                      _buildFlowerImage('assets/flowers/flower9.png', width: 100),
+                      _buildFlowerImage('assets/flowers/signUpScreen/flower9.png', width: 100),
                     ]
                 ),
               )
@@ -239,7 +250,7 @@ class SignUpScreen extends StatelessWidget {
   }
 
   Widget _buildSocialButton({
-    required IconData icon,
+    required dynamic icon,
     required String text,
     required VoidCallback onPressed,
     Color? iconColor,
@@ -253,7 +264,7 @@ class SignUpScreen extends StatelessWidget {
       ),
       child: TextButton.icon(
         onPressed: onPressed,
-        icon: Icon(
+        icon: FaIcon(
           icon,
           color: iconColor ?? Colors.black87,
           size: 28,

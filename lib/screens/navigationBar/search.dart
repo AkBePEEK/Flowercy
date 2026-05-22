@@ -23,6 +23,9 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadShops(); // ✅ Загружаем данные при открытии экрана
+    _searchController.addListener(() {
+      setState(() {});
+    });
   }
 
   // ✅ Метод загрузки магазинов из Firestore
@@ -136,7 +139,10 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.search, color: Colors.grey[600]),
+          GestureDetector(
+            onTap: _performSearch,
+            child: Icon(Icons.search, color: Colors.grey[600]),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(

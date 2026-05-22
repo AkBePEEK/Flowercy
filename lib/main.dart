@@ -1,8 +1,7 @@
-import 'package:flowery_app/services/seed_service.dart';
+import 'package:flowery_app/router/app_router.dart';
 import 'package:flutter/material.dart';
-import 'screens/signUp.dart';
-import 'screens/signIn.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -10,7 +9,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  await SeedShopsService().seedFlowerShops();
+  await GoogleSignIn.instance.initialize();
   runApp(const MyApp());
 }
 
@@ -19,20 +18,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
+    return MaterialApp.router(
       title: 'Flowery',
       theme: ThemeData(
         primarySwatch: Colors.pink,
+        useMaterial3: true,
       ),
-      // Начальный экран
-      home: const SignUpScreen(),
-
-      // Маршруты для навигации
-      routes: {
-        '/signup': (context) => const SignUpScreen(),
-        '/signin': (context) => const SignInScreen(),
-      },
+      routerConfig: router,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

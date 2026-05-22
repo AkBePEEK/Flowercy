@@ -1,8 +1,10 @@
-import 'package:flowery_app/screens/mainScreen.dart';
-import 'package:flowery_app/screens/signUp.dart';
+import 'package:flowery_app/screens/authorizationScreens/signUp.dart';
 import 'package:flutter/material.dart';
 // ✅ Firebase импорты
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../router/app_router.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -73,10 +75,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
       // ✅ Успешный вход — переход на главный экран
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
-        );
+        context.goNamed(AppRoute.main);
       }
 
     } on FirebaseAuthException catch (e) {
@@ -152,30 +151,6 @@ class _SignInScreenState extends State<SignInScreen> {
                     image: AssetImage('assets/flowers/signInScreen/flowerHeader.png'),
                     fit: BoxFit.cover,
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      bottom: 20,
-                      left: 20,
-                      right: 20,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ),
 
