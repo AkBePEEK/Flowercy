@@ -50,25 +50,25 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
     });
 
     try {
-      // 1. Получаем список избранных товаров (их ID)
+      // Товары
       final favoriteIds = await _userService.getFavorites();
-
-      // 2. Загружаем детали каждого товара
       final products = <Product>[];
       for (var id in favoriteIds) {
         final product = await _productService.getProductById(id);
-        if (product != null) {
-          products.add(product);
-        }
+        if (product != null) products.add(product);
       }
 
-      // 🔹 Для магазинов: можно хранить отдельно или фильтровать по категории
-      // Пока загружаем все магазины (в реальном проекте добавьте избранное для магазинов)
-      final shops = await _shopService.getAllShops();
+      // ✅ Магазины — реальные избранные
+      final favoriteShopIds = await _userService.getFavoriteShops();
+      final shops = <Shop>[];
+      for (var id in favoriteShopIds) {
+        final shop = await _shopService.getShopById(id);
+        if (shop != null) shops.add(shop);
+      }
 
       setState(() {
         _favoriteProducts = products;
-        _favoriteShops = shops.take(3).toList(); // Пример: первые 3 магазина
+        _favoriteShops = shops;
         _isLoading = false;
       });
     } catch (e) {
@@ -76,7 +76,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
         _error = 'Failed to load favorites';
         _isLoading = false;
       });
-      print('❌ Error loading favorites: $e');
     }
   }
 
@@ -477,17 +476,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
           const SizedBox(width: 8),
           // Сердечко (для магазинов можно добавить отдельное избранное)
           GestureDetector(
-            onTap: () {
-              // В реальном проекте: удалить магазин из избранного
+            onTap: () async {
+              await _userService.removeShopFromFavorites(shop.id);
+              _loadFavorites();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Feature coming soon!')),
+                SnackBar(content: Text('${shop.name} removed from favorites')),
               );
             },
-            child: const Icon(
-              Icons.favorite,
-              color: Color(0xFFB07183),
-              size: 24,
-            ),
+            child: const Icon(Icons.favorite, color: Color(0xFFB07183), size: 24),
           ),
         ],
       ),

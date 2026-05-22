@@ -33,6 +33,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _checkIfFavorite();
   }
 
   // ✅ Загрузка данных магазина и его товаров
@@ -64,10 +65,18 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     }
   }
 
-  // ✅ Переключение избранного для магазина (опционально)
+  Future<void> _checkIfFavorite() async {
+    final isFav = await _userService.isShopFavorite(widget.shopId);
+    setState(() => _isFavorite = isFav);
+  }
+
   Future<void> _toggleFavorite() async {
+    if (_isFavorite) {
+      await _userService.removeShopFromFavorites(widget.shopId);
+    } else {
+      await _userService.addShopToFavorites(widget.shopId);
+    }
     setState(() => _isFavorite = !_isFavorite);
-    // 🔹 Здесь можно добавить логику избранного для магазинов
   }
 
   @override

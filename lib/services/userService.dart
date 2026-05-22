@@ -109,6 +109,52 @@ class UserService {
     return favorites.contains(productId);
   }
 
+  // ✅ Получить избранные магазины
+  Future<List<String>> getFavoriteShops() async {
+    final userId = currentUserId;
+    if (userId == null) return [];
+
+    try {
+      final doc = await _firestore.collection(_collection).doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data();
+        return List<String>.from(data?['favoriteShops'] ?? []);
+      }
+      return [];
+    } catch (e) {
+      print('❌ Error fetching favorite shops: $e');
+      return [];
+    }
+  }
+
+// ✅ Добавить магазин в избранное
+  Future<void> addShopToFavorites(String shopId) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+
+    await _firestore.collection(_collection).doc(userId).update({
+      'favoriteShops': FieldValue.arrayUnion([shopId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+// ✅ Удалить магазин из избранного
+  Future<void> removeShopFromFavorites(String shopId) async {
+    final userId = currentUserId;
+    if (userId == null) throw Exception('User not authenticated');
+
+    await _firestore.collection(_collection).doc(userId).update({
+      'favoriteShops': FieldValue.arrayRemove([shopId]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+// ✅ Проверить, в избранном ли магазин
+  Future<bool> isShopFavorite(String shopId) async {
+    final shops = await getFavoriteShops();
+    return shops.contains(shopId);
+  }
+
   // ✅ Добавить товар в корзину
   Future<void> addToCart(CartItem item) async {
     final userId = currentUserId;
