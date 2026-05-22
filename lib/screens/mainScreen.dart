@@ -16,11 +16,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
+  late final List<Widget> _pages = [
     const HomeScreen(),           // Главная
     const SearchScreen(),         // Поиск
     const FavoritesScreen(),      // Избранное
-    const CartScreen(),           // Корзина
+    CartScreen(onBrowseFlowers: () => setState(() => _currentIndex = 0)),         // Корзина
     const ProfileScreen(),        // Профиль
   ];
 

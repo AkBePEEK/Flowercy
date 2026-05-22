@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
+import '../../services/orderService.dart';
+
 class OrderInProgressScreen extends StatelessWidget {
   final String orderNumber;
-  final String status; // ✅ Добавляем статус
+  final String status;
+  final String orderId;
 
   const OrderInProgressScreen({
     super.key,
     this.orderNumber = '№896743553',
     this.status = 'Placed', // Placed, Collecting, Delivery, Delivered
+    this.orderId = '',
   });
 
   // ✅ Получаем данные для каждого статуса
@@ -327,15 +331,14 @@ class OrderInProgressScreen extends StatelessWidget {
             child: const Text('No'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-              print('❌ Order cancelled');
+            onPressed: () async {
+              Navigator.pop(context); // закрыть диалог
+              if (orderId.isNotEmpty) {
+                await OrderService().updateOrderStatus(orderId, 'cancelled');
+              }
+              if (context.mounted) Navigator.pop(context); // вернуться назад
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
             child: const Text('Yes'),
           ),
         ],
