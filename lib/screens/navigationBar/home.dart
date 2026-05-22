@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../services/notificationService.dart';
 import '../aiFlorist/aiFloristIntro.dart';
 import '../bouqueteCrafting/bouquetCrafting.dart';
 import '../categoryScreens/flowerCategory.dart';
+import '../notificationsScreen.dart';
 import '../orderScreens/orderInProgress.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -74,14 +76,7 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.notifications_outlined),
-          ),
+          _NotificationBell(),
         ],
       ),
     );
@@ -568,6 +563,74 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _NotificationBell extends StatefulWidget {
+  const _NotificationBell();
+
+  @override
+  State<_NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<_NotificationBell> {
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUnreadCount();
+  }
+
+  Future<void> _loadUnreadCount() async {
+    final count = await NotificationService().getUnreadCount();
+    if (mounted) setState(() => _unreadCount = count);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+        );
+        _loadUnreadCount(); // обновляем счётчик после возврата
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.grey[100],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(Icons.notifications_outlined),
+            if (_unreadCount > 0)
+              Positioned(
+                top: -6,
+                right: -6,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFB07183),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$_unreadCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

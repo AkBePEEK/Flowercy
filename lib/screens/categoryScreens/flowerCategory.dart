@@ -19,7 +19,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   String _selectedCategory = 'Flowers';
   bool _showFlowerFilterModal = false;
   int _currentFilterTab = 0;
-  Set<String> _favoriteProductIds = {};
+  Set<String> _favoriteShopIds = {};
 
   // Сервисы
   final ProductService _productService = ProductService();
@@ -65,7 +65,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _loadFavorites();
+    _loadFavoriteShops();
   }
 
   // ✅ Загрузка данных из Firestore
@@ -102,63 +102,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
     }
   }
 
-  Future<void> _loadFavorites() async {
-    try {
-      final favorites = await _userService.getFavorites();
-      setState(() {
-        _favoriteProductIds = favorites.toSet();
-      });
-    } catch (e) {
-      print('❌ Error loading favorites: $e');
-    }
-  }
-
-  Future<void> _toggleFavorite(String productId, String productName) async {
-    final isFavorite = _favoriteProductIds.contains(productId);
-
-    try {
-      if (isFavorite) {
-        await _userService.removeFromFavorites(productId);
-        setState(() => _favoriteProductIds.remove(productId));
-        _showSnackBar('$productName removed from favorites');
-      } else {
-        await _userService.addToFavorites(productId);
-        setState(() => _favoriteProductIds.add(productId));
-        _showSnackBar('$productName added to favorites ❤️');
-      }
-    } catch (e) {
-      _showSnackBar('Error: ${e.toString()}');
-      print('❌ Error toggling favorite: $e');
-    }
-
-    if (!isFavorite) {
-      // Эффект пульсации (опционально)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.favorite, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text('$productName added to favorites'),
-            ],
-          ),
-          backgroundColor: const Color(0xFFB07183),
-          duration: const Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  // ✅ Показать уведомление
-  void _showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  Future<void> _loadFavoriteShops() async {
+    final shops = await _userService.getFavoriteShops();
+    setState(() => _favoriteShopIds = shops.toSet());
   }
 
   // ✅ Перезагрузка при смене категории
@@ -611,12 +557,15 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
               top: 20,
               right: 20,
               child: GestureDetector(
-                onTap: () {
-                  // 🔹 Для магазинов нужно отдельное поле в User модели
-                  // Пока показываем заглушку
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Shop favorites coming soon!')),
-                  );
+                onTap: () async {
+                  final isFav = _favoriteShopIds.contains(shop.id);
+                  if (isFav) {
+                    await _userService.removeShopFromFavorites(shop.id);
+                    setState(() => _favoriteShopIds.remove(shop.id));
+                  } else {
+                    await _userService.addShopToFavorites(shop.id);
+                    setState(() => _favoriteShopIds.add(shop.id));
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.all(8),
@@ -631,10 +580,10 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.favorite_border,
+                  child: Icon(
+                    _favoriteShopIds.contains(shop.id) ? Icons.favorite : Icons.favorite_border,
                     size: 20,
-                    color: Colors.grey,
+                    color: _favoriteShopIds.contains(shop.id) ? const Color(0xFFB07183) : Colors.grey,
                   ),
                 ),
               ),

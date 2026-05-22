@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/cartItem.dart';
 import '../../models/order.dart';
 import '../../models/orderItem.dart';
+import '../../services/notificationService.dart';
 import '../../services/orderService.dart';
 import '../../services/userService.dart';
 import 'courierComment.dart';
@@ -507,6 +508,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
       final orderId = await OrderService().createOrder(order);
       await UserService().clearCart();
+
+      await NotificationService().addNotification(
+        title: 'Order placed!',
+        body: 'Your order №${orderId.substring(0, 8).toUpperCase()} has been placed successfully.',
+        orderId: orderId,
+      );
 
       if (mounted) {
         Navigator.pushAndRemoveUntil(
