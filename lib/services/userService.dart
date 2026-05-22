@@ -160,26 +160,36 @@ class UserService {
     final userId = currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
-    final user = await getCurrentUser();
-    final existingItem = user?.cart.firstWhere(
-          (cartItem) => cartItem.productId == item.productId,
-      orElse: () => CartItem(
-        productId: '',
-        name: '',
-        price: 0,
-        quantity: 0,
-      ),
-    );
+    try {
+      final user = await getCurrentUser();
 
-    if (existingItem!.productId.isNotEmpty) {
-      // Товар уже есть — увеличиваем количество
-      await _updateCartItemQuantity(item.productId, existingItem.quantity + item.quantity);
-    } else {
-      // Новый товар — добавляем
-      await _firestore.collection(_collection).doc(userId).update({
-        'cart': FieldValue.arrayUnion([item.toMap()]),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      if (user == null) {
+        // Документ не существует — создаём с товаром
+        await _firestore.collection(_collection).doc(userId).set({
+          'cart': [item.toMap()],
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+        return;
+      }
+
+      final existingItem = user.cart.firstWhere(
+            (cartItem) => cartItem.productId == item.productId,
+        orElse: () => CartItem(productId: '', name: '', price: 0, quantity: 0),
+      );
+
+      if (existingItem.productId.isNotEmpty) {
+        // Товар уже есть — увеличиваем количество
+        await _updateCartItemQuantity(item.productId, existingItem.quantity + item.quantity);
+      } else {
+        // Новый товар — добавляем через set с merge
+        await _firestore.collection(_collection).doc(userId).set({
+          'cart': FieldValue.arrayUnion([item.toMap()]),
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      print('❌ Error adding to cart: $e');
+      rethrow;
     }
   }
 
