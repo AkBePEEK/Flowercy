@@ -62,13 +62,17 @@ class ProductService {
   // ✅ Поиск товаров
   Future<List<Product>> searchProducts(String query) async {
     try {
-      final snapshot = await _firestore
-          .collection(_collection)
-          .where('name', isGreaterThanOrEqualTo: query)
-          .where('name', isLessThanOrEqualTo: '$query\uf8ff')
-          .get();
+      // Загружаем все товары и фильтруем на клиенте
+      final snapshot = await _firestore.collection(_collection).get();
+      final allProducts = snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
 
-      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+      final lowerQuery = query.toLowerCase();
+
+      return allProducts.where((product) =>
+      product.name.toLowerCase().contains(lowerQuery) ||
+          product.description.toLowerCase().contains(lowerQuery) ||
+          product.category.toLowerCase().contains(lowerQuery)
+      ).toList();
     } catch (e) {
       print('❌ Error searching products: $e');
       return [];
