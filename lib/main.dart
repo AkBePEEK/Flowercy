@@ -1,3 +1,4 @@
+import 'package:flowery_app/services/seed_service.dart';
 import 'package:flutter/material.dart';
 import 'screens/signUp.dart';
 import 'screens/signIn.dart';
@@ -9,6 +10,7 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  await SeedShopsService().seedFlowerShops();
   runApp(const MyApp());
 }
 
