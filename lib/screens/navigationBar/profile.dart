@@ -4,7 +4,7 @@ import '../../services/userService.dart';
 import '../orderScreens/myOrder.dart';
 import '../../models/user.dart'; // Ваша модель
 import '../savedAddresses.dart';
-import '../signIn.dart';
+import '../authorizationScreens/signIn.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});

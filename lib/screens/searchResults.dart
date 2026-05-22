@@ -256,7 +256,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Widget _buildShopSection({
     required Shop shop,
     required List<Product> products,
-  }) {
+  })
+  {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

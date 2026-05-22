@@ -1,7 +1,11 @@
-import 'package:flowery_app/screens/signIn.dart';
+import 'package:flowery_app/screens/authorizationScreens/signIn.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../router/app_router.dart';
+import '../../services/auth_service.dart';
 
 class SignUpEmailScreen extends StatefulWidget {
   const SignUpEmailScreen({super.key});
@@ -69,10 +73,8 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const SignInScreen()),
-        );
+        AuthService().signOut();
+        context.goNamed(AppRoute.signIn);
       }
     } on FirebaseAuthException catch (e) {
       // Обработка ошибок Firebase

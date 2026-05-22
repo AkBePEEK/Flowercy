@@ -4,7 +4,8 @@ import '../../services/userService.dart';
 import '../orderScreens/orderDetails.dart';
 
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final VoidCallback? onBrowseFlowers;
+  const CartScreen({super.key, this.onBrowseFlowers});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -169,8 +170,7 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 24),
           ElevatedButton(
             onPressed: () {
-              // Перейти на главную или каталог
-              Navigator.pop(context);
+              widget.onBrowseFlowers?.call();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFB07183),
