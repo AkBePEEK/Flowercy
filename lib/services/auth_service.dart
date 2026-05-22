@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flowery_app/services/userService.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -99,10 +100,19 @@ class AuthService {
         accessToken: clientAuth.accessToken,
       );
 
-      return await _auth.signInWithCredential(credential);
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      // ✅ Создаём пользователя в Firestore если он новый
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        await UserService().createUser(
+          email: userCredential.user?.email ?? '',
+          name: userCredential.user?.displayName,
+        );
+      }
+
+      return userCredential;
 
     } catch (e, stackTrace) {
-      // Подробный вывод ошибки
       print('=== Google Sign-In ERROR ===');
       print('Type: ${e.runtimeType}');
       print('Message: $e');
@@ -144,7 +154,22 @@ class AuthService {
         rawNonce: rawNonce,
       );
 
-      return await _auth.signInWithCredential(oauthCredential);
+      final userCredential = await _auth.signInWithCredential(oauthCredential);
+
+      // ✅ Создаём пользователя в Firestore если он новый
+      if (userCredential.additionalUserInfo?.isNewUser == true) {
+        final fullName = [
+          appleCredential.givenName,
+          appleCredential.familyName,
+        ].where((s) => s != null).join(' ');
+
+        await UserService().createUser(
+          email: userCredential.user?.email ?? '',
+          name: fullName.isNotEmpty ? fullName : null,
+        );
+      }
+
+      return userCredential;
     } catch (e) {
       print('Apple Sign-In error: $e');
       return null;

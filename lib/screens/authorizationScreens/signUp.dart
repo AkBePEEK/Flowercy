@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
-
+import 'package:flutter/foundation.dart';
 import '../../router/app_router.dart';
 import '../../services/auth_service.dart';
 
@@ -48,17 +49,24 @@ class SignUpScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     // Apple Sign Up Button
-                    _buildSocialButton(
-                      icon: Icons.apple,
-                      text: 'Sign Up with Apple',
-                      onPressed: () {},
-                    ),
+                    if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                      _buildSocialButton(
+                        icon: Icons.apple,
+                        text: 'Sign Up with Apple',
+                        onPressed: () async {
+                          final result = await AuthService().signInWithApple();
+                          if (result != null && context.mounted) {
+                            context.goNamed(AppRoute.main);
+                          }
+                        },
+                      ),
+                    ],
 
                     const SizedBox(height: 16),
 
                     // Google Sign Up Button
                     _buildSocialButton(
-                      icon: Icons.g_mobiledata,
+                      icon: FontAwesomeIcons.google,
                       text: 'Sign Up with Google',
                       onPressed: () async {
                         final result = await AuthService().signInWithGoogle();
@@ -242,7 +250,7 @@ class SignUpScreen extends StatelessWidget {
   }
 
   Widget _buildSocialButton({
-    required IconData icon,
+    required dynamic icon,
     required String text,
     required VoidCallback onPressed,
     Color? iconColor,
@@ -256,7 +264,7 @@ class SignUpScreen extends StatelessWidget {
       ),
       child: TextButton.icon(
         onPressed: onPressed,
-        icon: Icon(
+        icon: FaIcon(
           icon,
           color: iconColor ?? Colors.black87,
           size: 28,
