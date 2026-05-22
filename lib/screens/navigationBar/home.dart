@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../aiFlorist/aiFloristIntro.dart';
 import '../bouqueteCrafting/bouquetCrafting.dart';
 import '../categoryScreens/flowerCategory.dart';
+import '../categoryScreens/sweetsCategory.dart';
 import '../orderScreens/orderInProgress.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -92,20 +93,27 @@ class HomeScreen extends StatelessWidget {
       height: 98,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          _buildCategoryItem('Flowers', Colors.purple[100]!, 'assets/flowers/homeScreen/flowersCategories.png', context),
-          _buildCategoryItem('Sweets', Colors.pink[100]!, 'assets/flowers/homeScreen/sweetsCategories.png', context),
-          _buildCategoryItem('Plants', Colors.green[100]!, 'assets/flowers/homeScreen/plantsCategories.png', context),
-          _buildCategoryItem('Bears', Colors.blue[100]!, 'assets/flowers/homeScreen/bearCategories.png', context),
-          _buildCategoryItem('Balloons', Colors.orange[100]!, 'assets/flowers/homeScreen/balloonsCategories.png', context),
+          _buildCategoryItem('Flowers', Colors.purple[100]!,
+              'assets/flowers/homeScreen/flowersCategories.png', context),
+          _buildCategoryItem('Sweets', Colors.pink[100]!,
+              'assets/flowers/homeScreen/sweetsCategories.png', context),
+          _buildCategoryItem('Plants', Colors.green[100]!,
+              'assets/flowers/homeScreen/plantsCategories.png', context),
+          _buildCategoryItem('Bears', Colors.blue[100]!,
+              'assets/flowers/homeScreen/bearCategories.png', context),
+          _buildCategoryItem('Balloons', Colors.orange[100]!,
+              'assets/flowers/homeScreen/balloonsCategories.png', context),
         ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(String name, Color color, String imagePath, BuildContext context) {
+  Widget _buildCategoryItem(
+      String name, Color color, String imagePath, BuildContext context) {
     return GestureDetector(
       onTap: () {
         _navigateToCategory(name, context);
@@ -145,8 +153,8 @@ class HomeScreen extends StatelessWidget {
               name,
               style: TextStyle(
                 fontSize: 12,
-                color: name == 'Flowers' ? const Color(0xFFFF67B3) : const Color(0xFF333333),
-                fontWeight: name == 'Flowers' ? FontWeight.w600 : FontWeight.w500,
+                color: const Color(0xFF333333),
+                fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -166,12 +174,12 @@ class HomeScreen extends StatelessWidget {
           MaterialPageRoute(builder: (context) => const FlowerCategoryScreen()),
         );
         break;
-      // case 'Sweets':
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),
-      //   );
-      //   break;
+      case 'Sweets':
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),
+        );
+        break;
       // case 'Plants':
       //   Navigator.push(
       //     context,
@@ -193,10 +201,11 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildFeatureCards(BuildContext context)  {
+  Widget _buildFeatureCards(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row( // Изменили Row на Column
+      child: Row(
+        // Изменили Row на Column
         children: [
           // Первая карточка - AI Florist
           Flexible(
@@ -227,12 +236,14 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Image.asset('assets/flowers/homeScreen/AIFlorist.png'),
+                      child: Image.asset(
+                          'assets/flowers/homeScreen/AIFlorist.png'),
                     ),
                     const SizedBox(height: 10),
                     const Text(
                       'AI Florist',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                     ),
                     const SizedBox(height: 5),
                     const Text(
@@ -247,7 +258,8 @@ class HomeScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             decoration: const BoxDecoration(
                               color: Color(0xFFFF67B3),
-                              borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
+                              borderRadius: BorderRadius.horizontal(
+                                  left: Radius.circular(8)),
                             ),
                             child: const Center(
                               child: Text(
@@ -265,7 +277,8 @@ class HomeScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(12),
                           decoration: const BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.horizontal(right: Radius.circular(8)),
+                            borderRadius: BorderRadius.horizontal(
+                                right: Radius.circular(8)),
                           ),
                           child: const Icon(
                             Icons.arrow_forward_ios,
@@ -291,7 +304,8 @@ class HomeScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder: (context) => const BouquetCraftingScreen(
-                      description: '', // Пустое описание, так как это отдельный поток
+                      description:
+                          '', // Пустое описание, так как это отдельный поток
                     ),
                   ),
                 );
@@ -314,12 +328,14 @@ class HomeScreen extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Image.asset("assets/flowers/homeScreen/bouquetCrafting.png"),
+                      child: Image.asset(
+                          "assets/flowers/homeScreen/bouquetCrafting.png"),
                     ),
                     const SizedBox(height: 10),
                     const Text(
                       'Bouquet crafting',
-                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
                     ),
                     const SizedBox(height: 5),
                     const Text(
@@ -334,7 +350,8 @@ class HomeScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             decoration: const BoxDecoration(
                               color: Color(0xFF558DF0),
-                              borderRadius: BorderRadius.horizontal(left: Radius.circular(8)),
+                              borderRadius: BorderRadius.horizontal(
+                                  left: Radius.circular(8)),
                             ),
                             child: const Center(
                               child: Text(
@@ -352,7 +369,8 @@ class HomeScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(12),
                           decoration: const BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.horizontal(right: Radius.circular(8)),
+                            borderRadius: BorderRadius.horizontal(
+                                right: Radius.circular(8)),
                           ),
                           child: const Icon(
                             Icons.arrow_forward_ios,
@@ -397,15 +415,10 @@ class HomeScreen extends StatelessWidget {
         const SizedBox(height: 12),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              _buildProductCard(
-                'Ranunculuses',
-                '88.000',
-                "assets/flowers/homeScreen/Ranunculuses.jpg"
-              ),
-            ]
-          ),
+          child: Column(children: [
+            _buildProductCard('Ranunculuses', '88.000',
+                "assets/flowers/homeScreen/Ranunculuses.jpg"),
+          ]),
         ),
       ],
     );
@@ -448,7 +461,8 @@ class HomeScreen extends StatelessWidget {
                   end: Alignment.topCenter,
                   colors: [
                     Colors.black.withValues(alpha: 0.7), // Темный снизу
-                    Colors.black.withValues(alpha: 0.3), // Прозрачнее в середине
+                    Colors.black
+                        .withValues(alpha: 0.3), // Прозрачнее в середине
                     Colors.transparent, // Полностью прозрачный сверху
                   ],
                 ),
@@ -542,7 +556,7 @@ class HomeScreen extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           GestureDetector(
-            onTap: (){
+            onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -557,7 +571,7 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Text(
                   'Collecting order',
-                  style: TextStyle(fontSize: 16,fontWeight: FontWeight.w500),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                 ),
                 SizedBox(height: 4),
                 Text(

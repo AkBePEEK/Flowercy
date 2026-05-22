@@ -3,13 +3,28 @@ import 'package:flutter/material.dart';
 class FlowerCatalogHeader extends StatelessWidget {
   static const List<Map<String, String>> defaultCategories = [
     {'name': 'Flowers', 'image': 'assets/flowers/flowersCategory/flowers.png'},
-    {'name': 'Monobouquets', 'image': 'assets/flowers/flowersCategory/monobouquets.png'},
-    {'name': 'Signature', 'image': 'assets/flowers/flowersCategory/signature.png'},
-    {'name': 'By the stem', 'image': 'assets/flowers/flowersCategory/byTheStem.png'},
+    {
+      'name': 'Monobouquets',
+      'image': 'assets/flowers/flowersCategory/monobouquets.png'
+    },
+    {
+      'name': 'Signature',
+      'image': 'assets/flowers/flowersCategory/signature.png'
+    },
+    {
+      'name': 'By the stem',
+      'image': 'assets/flowers/flowersCategory/byTheStem.png'
+    },
     {'name': 'In a box', 'image': 'assets/flowers/flowersCategory/inBox.png'},
-    {'name': 'In a basket', 'image': 'assets/flowers/flowersCategory/inBasket.png'},
+    {
+      'name': 'In a basket',
+      'image': 'assets/flowers/flowersCategory/inBasket.png'
+    },
     {'name': 'Bridal', 'image': 'assets/flowers/flowersCategory/bridal.png'},
-    {'name': 'In a wood box', 'image': 'assets/flowers/flowersCategory/inWoodBox.png'},
+    {
+      'name': 'In a wood box',
+      'image': 'assets/flowers/flowersCategory/inWoodBox.png'
+    },
   ];
 
   static const List<String> defaultFilters = [
@@ -24,7 +39,8 @@ class FlowerCatalogHeader extends StatelessWidget {
   final VoidCallback? onBackTap;
   final VoidCallback? onFilterTap;
   final ValueChanged<String>? onCategoryTap;
-  final VoidCallback? onFlowerTypeTap; // ✅ Callback для открытия модального окна
+  final VoidCallback?
+      onFlowerTypeTap; // ✅ Callback для открытия модального окна
   final String? selectedCategory;
   final List<Map<String, String>>? categories;
   final List<String>? filters;
@@ -158,7 +174,9 @@ class FlowerCatalogHeader extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? const Color(0xFFB07183) : const Color(0xFF333333),
+              color: isSelected
+                  ? const Color(0xFFB07183)
+                  : const Color(0xFF333333),
             ),
             textAlign: TextAlign.center,
           ),
@@ -226,8 +244,10 @@ class FlowerCatalogHeader extends StatelessWidget {
   }
 
   Widget _buildFilterChip(String label) {
+    final opensTypeFilter = label == 'Flowers type' || label == 'Sweets type';
+
     return GestureDetector(
-      onTap: label == 'Flowers type' ? onFlowerTypeTap : null,
+      onTap: opensTypeFilter ? onFlowerTypeTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
