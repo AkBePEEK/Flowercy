@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../services/userService.dart';
+import '../notificationsScreen.dart';
 import '../orderScreens/myOrder.dart';
 import '../../models/user.dart'; // Ваша модель
 import '../savedAddresses.dart';
@@ -14,7 +15,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  bool _notificationsEnabled = true;
 
   // ✅ Состояния для данных пользователя
   firebase_auth.User? _authUser;           // Пользователь из Firebase Auth
@@ -246,22 +246,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
             'Notifications',
-            trailing: Transform.scale(
-              scale: 0.8,
-              child: Switch(
-                value: _notificationsEnabled,
-                onChanged: (value) {
-                  setState(() {
-                    _notificationsEnabled = value;
-                  });
-                  // 🔹 Здесь можно сохранить настройку в Firestore
-                },
-                activeThumbColor: Colors.white,
-                activeTrackColor: const Color(0xFFB07183),
-                inactiveThumbColor: Colors.white,
-                inactiveTrackColor: Colors.grey[300],
-              ),
-            ),
+            hasArrow: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsScreen()),
+              );
+            },
           ),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
