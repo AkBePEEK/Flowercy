@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../services/notificationService.dart';
-import '../aiFlorist/aiFloristIntro.dart';
-import '../bouqueteCrafting/bouquetCrafting.dart';
+import '../aiFlorist/aiFlorist.dart';
 import '../categoryScreens/flowerCategory.dart';
 import '../categoryScreens/sweetsCategory.dart';
 import '../notificationsScreen.dart';
@@ -199,188 +198,156 @@ class HomeScreen extends StatelessWidget {
   Widget _buildFeatureCards(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        // Изменили Row на Column
-        children: [
-          // Первая карточка - AI Florist
-          Flexible(
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const AIFloristIntroScreen(),
-                  ),
-                );
-              },
-              child: Container(
-                height: 174,
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFEBF5),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Image.asset(
-                          'assets/flowers/homeScreen/AIFlorist.png'),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'AI Florist',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Find the perfect bouquet for any moment',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFF67B3),
-                              borderRadius: BorderRadius.horizontal(
-                                  left: Radius.circular(8)),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Ask AI for ideas',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.horizontal(
-                                right: Radius.circular(8)),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            color: Color(0xFFFF67B3),
-                            size: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+      child: GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const AIFloristScreen(),
             ),
+          );
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFFFEBF5), Color(0xFFE7EDFF)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-
-          const SizedBox(height: 12),
-
-// Вторая карточка - Bouquet Crafting
-          Flexible(
-            child: GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BouquetCraftingScreen(
-                      description:
-                          '', // Пустое описание, так как это отдельный поток
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Заголовок с иконкой
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome,
+                      color: Color(0xFFB07183),
+                      size: 20,
                     ),
                   ),
-                );
-              },
-              child: Container(
-                height: 174,
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE7EDFF),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Image.asset(
-                          "assets/flowers/homeScreen/bouquetCrafting.png"),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'AI Букетник',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Bouquet crafting',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Create your own bouquet with our florists',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const Spacer(),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF558DF0),
-                              borderRadius: BorderRadius.horizontal(
-                                  left: Radius.circular(8)),
-                            ),
-                            child: const Center(
-                              child: Text(
-                                'Start crafting',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.horizontal(
-                                right: Radius.circular(8)),
-                          ),
-                          child: const Icon(
-                            Icons.arrow_forward_ios,
-                            color: Color(0xFF558DF0),
-                            size: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              // Описание
+              const Text(
+                'Выберите цветы, укажите бюджет и повод — система сгенерирует идеальный букет. Понравился результат? Отправьте его флористу!',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.black54,
+                  height: 1.5,
                 ),
               ),
-            ),
+
+              const SizedBox(height: 16),
+
+              // Шаги
+              Row(
+                children: [
+                  _buildStep('🌸', 'Цветы'),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  _buildStep('✨', 'Генерация'),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
+                  const SizedBox(width: 8),
+                  _buildStep('💐', 'Флористу'),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Кнопка
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF67B3),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Создать букет с AI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Color(0xFFFF67B3),
+                      size: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep(String emoji, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Column(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 18)),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     );
   }
