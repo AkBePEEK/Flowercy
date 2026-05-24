@@ -1,37 +1,116 @@
-import 'package:flutter/material.dart';
+// lib/screens/orderScreens/orderComplete.dart
 
-class OrderDetailScreen extends StatelessWidget {
-  final String orderNumber;
-  final String status; // Complete, In progress, Declined, etc.
+import 'package:flutter/material.dart';
+import '../../models/order.dart';
+import '../../models/orderItem.dart';
+import '../../services/orderService.dart';
+
+class OrderDetailScreen extends StatefulWidget {
+  final String orderNumber; // для отображения в AppBar
+  final String orderId;     // для загрузки из Firestore
 
   const OrderDetailScreen({
     super.key,
-    this.orderNumber = '№896743553',
-    this.status = 'Complete',
+    this.orderNumber = '',
+    this.orderId = '',
   });
 
-  // ✅ Получаем цвет статуса
-  Color _getStatusColor() {
-    switch (status.toLowerCase()) {
-      case 'complete':
-        return Colors.green;
-      case 'in progress':
-      case 'processing':
-        return Color(0xFFFEDC02);
-      case 'declined':
-      case 'cancelled':
-        return Colors.red;
-      case 'pending':
-        return Colors.blue;
-      default:
-        return Colors.grey;
+  @override
+  State<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends State<OrderDetailScreen> {
+  Order? _order;
+  bool _isLoading = true;
+  String? _error;
+  bool _isRepeating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrder();
+  }
+
+  Future<void> _loadOrder() async {
+    if (widget.orderId.isEmpty) {
+      setState(() {
+        _error = 'Order ID not provided';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final order = await OrderService().getOrderById(widget.orderId);
+      setState(() {
+        _order = order;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load order';
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Цвет статуса
+  Color _getStatusColor(String status) {
+    return Color(int.parse('0xFF${_order!.statusColorHex}'));
+  }
+
+  // Повторить заказ — создаём новый с теми же товарами
+  Future<void> _repeatOrder() async {
+    if (_order == null) return;
+    setState(() => _isRepeating = true);
+
+    try {
+      final newOrder = Order(
+        id: '',
+        userId: _order!.userId,
+        items: _order!.items,
+        total: _order!.total,
+        status: 'placed',
+        recipient: _order!.recipient,
+        address: _order!.address,
+        apartment: _order!.apartment,
+        deliveryTime: _order!.deliveryTime,
+        payment: _order!.payment,
+        comment: _order!.comment,
+        createdAt: DateTime.now(),
+      );
+
+      await OrderService().createOrder(newOrder);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Order repeated successfully! 🌸'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to repeat order: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isRepeating = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final displayNumber = widget.orderNumber.isNotEmpty
+        ? widget.orderNumber
+        : (widget.orderId.isNotEmpty ? '№${widget.orderId}' : '№—');
+
     return Scaffold(
-      backgroundColor: Colors.white, // ✅ Изменили на белый
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -40,7 +119,7 @@ class OrderDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Order $orderNumber',
+          'Order $displayNumber',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -49,154 +128,228 @@ class OrderDetailScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFB07183)))
+          : _error != null
+          ? _buildErrorState()
+          : _order == null
+          ? const Center(child: Text('Order not found'))
+          : _buildContent(),
+    );
+  }
 
-                  // ✅ Статус заказа + номер
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getStatusColor(),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            status,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+  // ── Контент ──────────────────────────────────────────────────
+
+  Widget _buildContent() {
+    final order = _order!;
+
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 16),
+
+                // Статус + номер заказа
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          orderNumber,
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(order.status),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          order.statusText,
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey,
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '№${order.id}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
 
-                  const SizedBox(height: 20),
+                const SizedBox(height: 20),
 
-                  // ✅ Товар заказа (упрощённый)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                // Товары заказа
+                ...order.items.map((item) => _buildOrderItem(item)),
+
+                const SizedBox(height: 8),
+
+                // Итого
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${order.itemsCount} item${order.itemsCount != 1 ? 's' : ''}',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                      Text(
+                        order.formattedTotal,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFFB07183),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Rose bouquet',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                '42 480₸',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
 
-                  const SizedBox(height: 32),
+                const SizedBox(height: 32),
 
-                  // ✅ Информация о заказе (обновлённая)
-                  _buildInfoSection(),
+                // Информация о заказе
+                _buildInfoSection(order),
 
-                  const SizedBox(height: 100),
-                ],
-              ),
+                const SizedBox(height: 100),
+              ],
             ),
           ),
+        ),
 
-          // Кнопка Repeat order (только для Complete)
-          if (status.toLowerCase() == 'complete')
-            _buildBottomButton(context),
+        // Кнопка Repeat order (только если можно повторить)
+        if (order.canRepeat) _buildBottomButton(),
+      ],
+    );
+  }
+
+  // ── Элемент товара ────────────────────────────────────────────
+
+  Widget _buildOrderItem(OrderItem item) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          // Изображение (заглушка — в OrderItem нет image URL)
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: item.image != null && item.image!.isNotEmpty
+                ? ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Image.network(
+                item.image!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.local_florist,
+                  color: Colors.grey,
+                ),
+              ),
+            )
+                : const Icon(Icons.local_florist, color: Colors.grey),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${item.quantity} × ${item.formattedPrice}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            item.formattedTotalPrice,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  // ✅ Обновлённая секция с информацией
-  Widget _buildInfoSection() {
+  // ── Информация о заказе ───────────────────────────────────────
+
+  Widget _buildInfoSection(Order order) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         children: [
-          _buildInfoRow('Recipient', 'Lada'),
-          const Divider(height: 1, indent: 16),
-          _buildInfoRow('Address', 'Astana, Uly Dala Avenue, 31'),
-          const Divider(height: 1, indent: 16),
-          _buildInfoRow('Delivery time', '14 February, Wed'),
-          const Divider(height: 1, indent: 16),
-          _buildInfoRow('Payment', 'Upon receipt'),
+          if (order.recipient.isNotEmpty)
+            _buildInfoRow('Recipient', order.recipient),
+          if (order.address.isNotEmpty) ...[
+            const Divider(height: 1, indent: 16),
+            _buildInfoRow(
+              'Address',
+              order.apartment != null && order.apartment!.isNotEmpty
+                  ? '${order.address}, ${order.apartment}'
+                  : order.address,
+            ),
+          ],
+          if (order.deliveryTime.isNotEmpty) ...[
+            const Divider(height: 1, indent: 16),
+            _buildInfoRow('Delivery time', order.deliveryTime),
+          ],
+          if (order.payment.isNotEmpty) ...[
+            const Divider(height: 1, indent: 16),
+            _buildInfoRow('Payment', order.payment),
+          ],
+          if (order.comment != null && order.comment!.isNotEmpty) ...[
+            const Divider(height: 1, indent: 16),
+            _buildInfoRow('Comment', order.comment!),
+          ],
         ],
       ),
     );
   }
 
   Widget _buildInfoRow(String label, String value) {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
+          const SizedBox(width: 16),
           Flexible(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 15, color: Colors.grey[700]),
               textAlign: TextAlign.right,
             ),
           ),
@@ -205,7 +358,9 @@ class OrderDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomButton(BuildContext context) {
+  // ── Кнопка Repeat order ───────────────────────────────────────
+
+  Widget _buildBottomButton() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -220,9 +375,7 @@ class OrderDetailScreen extends StatelessWidget {
       ),
       child: SafeArea(
         child: ElevatedButton(
-          onPressed: () {
-            print('🔁 Repeat order $orderNumber');
-          },
+          onPressed: _isRepeating ? null : _repeatOrder,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFB07183),
             foregroundColor: Colors.white,
@@ -232,14 +385,43 @@ class OrderDetailScreen extends StatelessWidget {
             ),
             minimumSize: const Size(double.infinity, 50),
           ),
-          child: const Text(
-            'Repeat order',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
+          child: _isRepeating
+              ? const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 2,
             ),
+          )
+              : const Text(
+            'Repeat order',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
+      ),
+    );
+  }
+
+  // ── Экран ошибки ──────────────────────────────────────────────
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 16)),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadOrder,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB07183),
+            ),
+            child: const Text('Retry', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
