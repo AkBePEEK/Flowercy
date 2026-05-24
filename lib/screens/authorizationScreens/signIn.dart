@@ -2,9 +2,6 @@ import 'package:flowery_app/screens/authorizationScreens/signUp.dart';
 import 'package:flutter/material.dart';
 // ✅ Firebase импорты
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:go_router/go_router.dart';
-
-import '../../router/app_router.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -37,12 +34,8 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // ✅ Обработка входа
   Future<void> _handleSignIn() async {
-    // Скрыть предыдущие ошибки
-    setState(() {
-      _errorMessage = null;
-    });
+    setState(() => _errorMessage = null);
 
-    // 1. Проверка: заполнены ли поля
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       setState(() {
@@ -52,7 +45,6 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
-    // 2. Проверка: валидный ли email
     if (!_isValidEmail(_emailController.text.trim())) {
       setState(() {
         _errorMessage = 'Please enter a valid email address';
@@ -61,23 +53,13 @@ class _SignInScreenState extends State<SignInScreen> {
       return;
     }
 
-    // 3. Показать индикатор загрузки
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // ✅ Вход через Firebase Auth
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      // ✅ Успешный вход — переход на главный экран
-      if (mounted) {
-        context.goNamed(AppRoute.main);
-      }
-
     } on FirebaseAuthException catch (e) {
       // ✅ Обработка ошибок Firebase
       String message;
@@ -87,6 +69,9 @@ class _SignInScreenState extends State<SignInScreen> {
           break;
         case 'wrong-password':
           message = 'Incorrect password';
+          break;
+        case 'invalid-credential':
+          message = 'Incorrect email or password';
           break;
         case 'invalid-email':
           message = 'Please enter a valid email address';
@@ -98,7 +83,7 @@ class _SignInScreenState extends State<SignInScreen> {
           message = 'Too many attempts. Try again later';
           break;
         default:
-          message = 'Something went wrong. Please try again.';
+          message = 'Something went wrong. Please try again. (${e.code})';
       }
 
       if (mounted) {
@@ -112,12 +97,9 @@ class _SignInScreenState extends State<SignInScreen> {
         _showError('Network error. Check your connection.');
       }
     } finally {
-      // Скрыть индикатор загрузки
-      if (mounted) {
-        setState(() => _isLoading = false);
-        }
-        }
-        }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   // ✅ Показать ошибку в SnackBar
   void _showError(String message) {

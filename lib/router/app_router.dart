@@ -1,9 +1,12 @@
+import 'dart:async';
+
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/mainScreen.dart';
 import '../screens/authorizationScreens/signUp.dart';
 import '../screens/authorizationScreens/signIn.dart';
 import '../screens/authorizationScreens/signUpEmail.dart';
-import '../services/auth_service.dart';
 
 // 🔹 Имена маршрутов
 abstract class AppRoute {
@@ -17,24 +20,24 @@ abstract class AppRoute {
 final GoRouter router = GoRouter(
   initialLocation: AppRoute.signIn,  // ← Начинаем с входа
 
+  // ✅ refreshListenable обновляет роутер когда меняется auth состояние
+  refreshListenable: GoRouterRefreshStream(
+    FirebaseAuth.instance.authStateChanges(),
+  ),
+
   // 🔐 Проверка авторизации перед каждым переходом
   redirect: (context, state) {
-    final isLoggedIn = AuthService().getCurrentUser() != null;
-    final isAuthRoute = state.matchedLocation == AppRoute.signIn ||
-        state.matchedLocation == AppRoute.signUp ||
-        state.matchedLocation == AppRoute.signUpEmail;
+    // ✅ currentUser теперь актуален — Firebase уже обновил состояние
+    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+    print('🔀 redirect вызван: isLoggedIn=$isLoggedIn, path=${state.matchedLocation}');
+    final isAuthRoute =
+        state.matchedLocation == AppRoute.signIn ||
+            state.matchedLocation == AppRoute.signUp ||
+            state.matchedLocation == AppRoute.signUpEmail;
 
-    // Если не авторизован и пытается зайти на защищённый маршрут
-    if (!isLoggedIn && !isAuthRoute) {
-      return AppRoute.signIn;  // ← Перенаправить на вход
-    }
-
-    // Если авторизован и пытается зайти на вход/регистрацию
-    if (isLoggedIn && isAuthRoute) {
-      return AppRoute.main;  // ← Перенаправить на главную
-    }
-
-    return null;  // Разрешить навигацию
+    if (!isLoggedIn && !isAuthRoute) return AppRoute.signIn;
+    if (isLoggedIn && isAuthRoute)   return AppRoute.main;
+    return null;
   },
 
   routes: [
@@ -67,3 +70,18 @@ final GoRouter router = GoRouter(
     ),
   ],
 );
+
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<dynamic> _sub;
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}

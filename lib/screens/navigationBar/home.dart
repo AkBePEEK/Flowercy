@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 
+import '../../models/address.dart';
+import '../../models/product.dart';
 import '../../services/notificationService.dart';
+import '../../services/productService.dart';
+import '../../services/userService.dart';
 import '../aiFlorist/aiFlorist.dart';
 import '../categoryScreens/flowerCategory.dart';
+import '../categoryScreens/productDetail.dart';
 import '../categoryScreens/sweetsCategory.dart';
 import '../notificationsScreen.dart';
 import '../orderScreens/orderInProgress.dart';
+import '../savedAddresses.dart';
+import '../../models/order.dart';
+import '../../services/orderService.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -54,32 +62,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Row(
-        children: [
-          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 20),
-          const SizedBox(width: 8),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Astana',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                Text(
-                  'Uly Dala avenue, 31',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          _NotificationBell(),
-        ],
-      ),
-    );
+    return const _HomeHeader();
   }
 
   Widget _buildCategories(BuildContext context) {
@@ -364,188 +347,18 @@ class HomeScreen extends StatelessWidget {
                 'Top pick ',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
               ),
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('🔥', style: TextStyle(fontSize: 20)),
-              ),
+              const Text('🔥', style: TextStyle(fontSize: 20)),
             ],
           ),
         ),
         const SizedBox(height: 12),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(children: [
-            _buildProductCard('Ranunculuses', '88.000',
-                "assets/flowers/homeScreen/Ranunculuses.jpg"),
-          ]),
-        ),
+        const _TopPickCard(), // ← заменяем заглушку
       ],
     );
   }
 
-  Widget _buildProductCard(String title, String price, String imagePath) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      width: double.infinity,
-      height: 256, // Фиксированная высота для карточки
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Stack(
-        children: [
-          // 1. Изображение на весь контейнер
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: Image.asset(
-              imagePath,
-              width: double.infinity,
-              height: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-
-          // 2. Градиент затемнения снизу (для читаемости текста)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: 120, // Высота градиента
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  bottom: Radius.circular(16),
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.7), // Темный снизу
-                    Colors.black
-                        .withValues(alpha: 0.3), // Прозрачнее в середине
-                    Colors.transparent, // Полностью прозрачный сверху
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 3. Бейдж "Top Choice" сверху слева
-          Positioned(
-            top: 10,
-            left: 10,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Top Choice',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFFFF67B3),
-                ),
-              ),
-            ),
-          ),
-
-          // 4. Текст снизу (название и цена)
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 12,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                    color: Colors.white, // Белый текст
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '₸ $price',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: Colors.white, // Белый текст
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomBanner(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFB07183),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Image.asset("assets/shopping_basket.png"),
-          ),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => OrderInProgressScreen(
-                    orderNumber: '№896743553',
-                  ),
-                ),
-              );
-            },
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Collecting order',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'We deliver flowers today, from 8:00 to 10:00',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+    return const _ActiveOrderBanner();
   }
 }
 
@@ -610,6 +423,356 @@ class _NotificationBellState extends State<_NotificationBell> {
                   ),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopPickCard extends StatefulWidget {
+  const _TopPickCard();
+
+  @override
+  State<_TopPickCard> createState() => _TopPickCardState();
+}
+
+class _TopPickCardState extends State<_TopPickCard> {
+  Product? _product;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTopPick();
+  }
+
+  Future<void> _loadTopPick() async {
+    try {
+      final products = await ProductService().getAllProducts();
+      if (products.isNotEmpty) {
+        // Берём товар с наивысшим рейтингом
+        products.sort((a, b) => b.rating.compareTo(a.rating));
+        setState(() {
+          _product = products.first;
+          _isLoading = false;
+        });
+      } else {
+        setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('❌ Error loading top pick: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        height: 256,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_product == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(productId: _product!.id),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        width: double.infinity,
+        height: 256,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
+        child: Stack(
+          children: [
+            // Изображение
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: _product!.images.isNotEmpty
+                  ? Image.network(
+                _product!.images.first,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.grey[200],
+                  child: const Icon(Icons.local_florist, size: 60, color: Colors.grey),
+                ),
+              )
+                  : Container(
+                color: Colors.grey[200],
+                child: const Icon(Icons.local_florist, size: 60, color: Colors.grey),
+              ),
+            ),
+
+            // Градиент
+            Positioned(
+              left: 0, right: 0, bottom: 0,
+              child: Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.7),
+                      Colors.black.withValues(alpha: 0.3),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Бейдж
+            Positioned(
+              top: 10, left: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Text(
+                  'Top Choice',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFFF67B3)),
+                ),
+              ),
+            ),
+
+            // Название и цена
+            Positioned(
+              left: 12, right: 12, bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _product!.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _product!.formattedPrice,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeHeader extends StatefulWidget {
+  const _HomeHeader();
+
+  @override
+  State<_HomeHeader> createState() => _HomeHeaderState();
+}
+
+class _HomeHeaderState extends State<_HomeHeader> {
+  Address? _defaultAddress;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAddress();
+  }
+
+  Future<void> _loadAddress() async {
+    try {
+      final address = await UserService().getDefaultAddress();
+      if (mounted) setState(() => _defaultAddress = address);
+    } catch (e) {
+      print('❌ Error loading address: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Row(
+        children: [
+          const Icon(Icons.location_on_outlined, color: Colors.grey, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const SavedAddressesScreen()),
+                );
+                _loadAddress(); // обновляем после возврата
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Astana',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        _defaultAddress?.street ?? 'Add address',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          _NotificationBell(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveOrderBanner extends StatefulWidget {
+  const _ActiveOrderBanner();
+
+  @override
+  State<_ActiveOrderBanner> createState() => _ActiveOrderBannerState();
+}
+
+class _ActiveOrderBannerState extends State<_ActiveOrderBanner> {
+  Order? _activeOrder;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadActiveOrder();
+  }
+
+  Future<void> _loadActiveOrder() async {
+    try {
+      final orders = await OrderService().getUserOrders();
+      final active = orders.where((o) {
+        final s = o.status.toLowerCase();
+        return s == 'placed' || s == 'collecting' || s == 'delivery';
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _activeOrder = active.isNotEmpty ? active.first : null;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      print('❌ Error loading active order: $e');
+    }
+  }
+
+  String get _statusText {
+    switch (_activeOrder?.status.toLowerCase()) {
+      case 'placed':     return 'Order placed';
+      case 'collecting': return 'Collecting order';
+      case 'delivery':   return 'Courier is on the way';
+      default:           return 'Order in progress';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Пока грузится — ничего не показываем
+    if (_isLoading) return const SizedBox.shrink();
+
+    // Нет активных заказов — скрываем баннер
+    if (_activeOrder == null) return const SizedBox.shrink();
+
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderInProgressScreen(
+              orderNumber: '№${_activeOrder!.id}',
+              status:      _activeOrder!.status,
+              orderId:     _activeOrder!.id,
+            ),
+          ),
+        );
+        // Обновляем после возврата (заказ мог быть отменён)
+        _loadActiveOrder();
+      },
+      child: Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFB07183),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Image.asset("assets/shopping_basket.png"),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _statusText,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _activeOrder!.deliveryTime.isNotEmpty
+                        ? _activeOrder!.deliveryTime
+                        : 'We deliver flowers today',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
           ],
         ),
       ),
