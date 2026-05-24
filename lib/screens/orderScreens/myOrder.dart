@@ -59,6 +59,7 @@ class MyOrdersScreen extends StatelessWidget {
         required String orderNumber,
         required String productName,
         required String price,
+        required String orderId,
         VoidCallback? onTap, // ✅ Новый параметр
       }) {
     return GestureDetector( // ✅ Оборачиваем в GestureDetector
@@ -155,7 +156,7 @@ class MyOrdersScreen extends StatelessWidget {
                   MaterialPageRoute(
                     builder: (context) => OrderDetailScreen(
                       orderNumber: orderNumber,
-                      status: status,
+                      orderId: orderId,
                     ),
                   ),
                 );
@@ -196,13 +197,12 @@ class MyOrdersScreen extends StatelessWidget {
       orderNumber: '№${order.id}',
       productName: firstItem?.name ?? 'Заказ',
       price: order.formattedTotal, // ✅ "42 480 ₸" из модели
-      // ✅ Передаём ID заказа для навигации
+      orderId:     order.id, // ✅ Передаём ID заказа для навигации
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
           builder: (context) => OrderDetailScreen(
-            orderNumber: '№${order.id}',
-            status: order.status, // ✅ Передаём только статус
+            orderNumber: '№${order.id}', orderId: order.id,
           ),
         ),
       ),
