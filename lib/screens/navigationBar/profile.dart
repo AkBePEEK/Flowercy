@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import '../../main.dart';
 import '../../services/language_service.dart';
 import '../../services/userService.dart';
 import '../notificationsScreen.dart';
@@ -256,11 +257,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
             'Language',
-            trailing: const Text('EN'),
-            onTap: () {
-              // 🔹 Открыть выбор языка
-              _showLanguageSelector();
-            },
+            trailing: ValueListenableBuilder<String>(
+              valueListenable: appLanguageNotifier,
+              builder: (_, code, __) => Text(code.toUpperCase()),
+            ),
+            onTap: () => _showLanguageSelector(),  // ← вернись к оригинальному методу
           ),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
@@ -289,109 +290,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // ✅ Выбор языка (заглушка)
   // ✅ Выбор языка — рабочая реализация через AppLanguage
   void _showLanguageSelector() {
-    final appLang = AppLanguage.of(context);
-    final currentCode = appLang.languageCode;
-
-    final languages = [
-      {'code': 'en', 'name': 'English',  'flag': '🇬🇧'},
-      {'code': 'ru', 'name': 'Русский',  'flag': '🇷🇺'},
-      {'code': 'kz', 'name': 'Қазақша', 'flag': '🇰🇿'},
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            String selected = currentCode;
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Ручка
-                  Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Select Language',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 16),
-                  ...languages.map((lang) {
-                    final isSelected = selected == lang['code'];
-                    return GestureDetector(
-                      onTap: () {
-                        setModalState(() => selected = lang['code']!);
-                        // Применяем язык через InheritedWidget
-                        AppLanguageProvider.of(context)?.setLocale(lang['code']!);
-                        Navigator.pop(context);
-                        // Обновляем UI профиля (для trailing текста)
-                        if (mounted) setState(() {});
-                      },
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFFB07183).withValues(alpha: 0.08)
-                              : Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFFB07183)
-                                : Colors.grey[200]!,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
-                            const SizedBox(width: 12),
-                            Text(
-                              lang['name']!,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.w400,
-                                color: isSelected
-                                    ? const Color(0xFFB07183)
-                                    : Colors.black87,
-                              ),
-                            ),
-                            const Spacer(),
-                            if (isSelected)
-                              const Icon(
-                                Icons.check_circle,
-                                color: Color(0xFFB07183),
-                                size: 22,
-                              ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }),
-                ],
-              ),
-            );
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black54,
+        barrierDismissible: true,
+        pageBuilder: (ctx, _, __) => _LanguageSelectorSheet(
+          currentCode: appLanguageNotifier.value,
+          onSelect: (code) async {
+            await setAppLanguage(code);
+            if (mounted) setState(() {});
           },
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -468,6 +381,123 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontWeight: FontWeight.normal,
               color: Color(0xFFFE0202),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageSelectorSheet extends StatefulWidget {
+  final String currentCode;
+  final void Function(String) onSelect;
+
+  const _LanguageSelectorSheet({
+    required this.currentCode,
+    required this.onSelect,
+  });
+
+  @override
+  State<_LanguageSelectorSheet> createState() => _LanguageSelectorSheetState();
+}
+
+class _LanguageSelectorSheetState extends State<_LanguageSelectorSheet> {
+  late String _selected;
+
+  final _languages = const [
+    {'code': 'en', 'name': 'English',  'flag': '🇬🇧'},
+    {'code': 'ru', 'name': 'Русский',  'flag': '🇷🇺'},
+    {'code': 'kk', 'name': 'Қазақша', 'flag': '🇰🇿'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = widget.currentCode;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Material(
+        color: Colors.transparent,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Select Language',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+              ..._languages.map((lang) {
+                final isSelected = _selected == lang['code'];
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _selected = lang['code']!);
+                    widget.onSelect(lang['code']!);
+                    Navigator.pop(context);
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFFB07183).withValues(alpha: 0.08)
+                          : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFFB07183)
+                            : Colors.grey[200]!,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+                        const SizedBox(width: 12),
+                        Text(
+                          lang['name']!,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isSelected
+                                ? const Color(0xFFB07183)
+                                : Colors.black87,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (isSelected)
+                          const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFFB07183),
+                            size: 22,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
         ),
       ),

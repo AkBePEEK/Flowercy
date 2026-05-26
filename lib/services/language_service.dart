@@ -1,17 +1,6 @@
-// lib/services/language_service.dart
-//
-// Управление языком приложения без пакета intl.
-// Поддерживаемые языки: English (en), Русский (ru), Қазақша (kz).
-//
-// Использование в виджетах:
-//   final t = AppLanguage.of(context).t;
-//   Text(t.home)
-//
-// Смена языка:
-//   AppLanguage.of(context).setLocale('ru');
-
-import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../main.dart';
 
 // ─────────────────────────────────────────────────────────────
 // ПЕРЕВОДЫ — все строки приложения
@@ -109,93 +98,22 @@ class AppTranslations {
   String _t(String en, String ru, String kz) {
     switch (languageCode) {
       case 'ru': return ru;
-      case 'kz': return kz;
+      case 'kk': return kz;
       default:   return en;
     }
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// INHERITED WIDGET — провайдер языка для всего дерева
-// ─────────────────────────────────────────────────────────────
-class AppLanguage extends InheritedWidget {
-  final String languageCode;
-  final AppTranslations t;
-  final void Function(String code) setLocale;
-
-  AppLanguage({
-    super.key,
-    required this.languageCode,
-    required this.setLocale,
-    required super.child,
-  }) : t = AppTranslations(languageCode);
-
-  static AppLanguage of(BuildContext context) {
-    final result = context.dependOnInheritedWidgetOfExactType<AppLanguage>();
-    assert(result != null, 'AppLanguage не найден в дереве. Оберни MyApp в AppLanguageProvider.');
-    return result!;
-  }
-
-  @override
-  bool updateShouldNotify(AppLanguage oldWidget) {
-    return languageCode != oldWidget.languageCode;
-  }
+// ✅ Глобальная функция смены языка — вызывай отовсюду
+Future<void> setAppLanguage(String code) async {
+  appLanguageNotifier.value = code;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_language', code);
+  } catch (_) {}
 }
 
-// ─────────────────────────────────────────────────────────────
-// PROVIDER — StatefulWidget обёртка для корня приложения
-// ─────────────────────────────────────────────────────────────
-class AppLanguageProvider extends StatefulWidget {
-  final Widget Function(String languageCode) builder;
-
-  const AppLanguageProvider({super.key, required this.builder});
-
-  @override
-  State<AppLanguageProvider> createState() => AppLanguageProviderState();
-
-  // Статический метод для смены языка без контекста
-  static AppLanguageProviderState? of(BuildContext context) {
-    return context.findAncestorStateOfType<AppLanguageProviderState>();
-  }
-}
-
-class AppLanguageProviderState extends State<AppLanguageProvider> {
-  String _languageCode = 'en';
-  static const _prefKey = 'app_language';
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSavedLanguage();
-  }
-
-  Future<void> _loadSavedLanguage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_prefKey);
-      if (saved != null && mounted) {
-        setState(() => _languageCode = saved);
-      }
-    } catch (_) {
-      // SharedPreferences недоступен — используем дефолт
-    }
-  }
-
-  Future<void> setLocale(String code) async {
-    if (_languageCode == code) return;
-    setState(() => _languageCode = code);
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_prefKey, code);
-    } catch (_) {}
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppLanguage(
-      languageCode: _languageCode,
-      setLocale: setLocale,
-      child: widget.builder(_languageCode),
-    );
-  }
+// ✅ Получить текущие переводы
+AppTranslations getTranslations() {
+  return AppTranslations(appLanguageNotifier.value);
 }

@@ -16,8 +16,11 @@ abstract class AppRoute {
   static const String main = '/home';            // ← Главная (после входа)
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 // 🔹 Конфигурация роутера с защитой маршрутов
 final GoRouter router = GoRouter(
+  navigatorKey: navigatorKey,
   initialLocation: AppRoute.signIn,  // ← Начинаем с входа
 
   // ✅ refreshListenable обновляет роутер когда меняется auth состояние
