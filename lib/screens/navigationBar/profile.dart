@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import '../../services/language_service.dart';
 import '../../services/userService.dart';
 import '../notificationsScreen.dart';
 import '../orderScreens/myOrder.dart';
@@ -64,7 +65,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _error = 'Failed to load profile';
         _isLoading = false;
       });
-      print('❌ Error loading user data: $e');
     }
   }
 
@@ -87,7 +87,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
       _showError('Failed to sign out. Please try again.');
-      print('❌ Error signing out: $e');
     }
   }
 
@@ -291,42 +290,108 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // ✅ Выбор языка (заглушка)
+  // ✅ Выбор языка — рабочая реализация через AppLanguage
   void _showLanguageSelector() {
+    final appLang = AppLanguage.of(context);
+    final currentCode = appLang.languageCode;
+
+    final languages = [
+      {'code': 'en', 'name': 'English',  'flag': '🇬🇧'},
+      {'code': 'ru', 'name': 'Русский',  'flag': '🇷🇺'},
+      {'code': 'kz', 'name': 'Қазақша', 'flag': '🇰🇿'},
+    ];
+
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Select Language',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            ListTile(
-              title: const Text('English'),
-              trailing: const Text('EN') == const Text('EN')
-                  ? const Icon(Icons.check, color: Color(0xFFB07183))
-                  : null,
-              onTap: () {
-                Navigator.pop(context);
-                // 🔹 Сохранить выбор языка
-              },
-            ),
-            ListTile(
-              title: const Text('Русский'),
-              trailing: const Text('EN') != const Text('RU')
-                  ? null
-                  : const Icon(Icons.check, color: Color(0xFFB07183)),
-              onTap: () {
-                Navigator.pop(context);
-                // 🔹 Сохранить выбор языка
-              },
-            ),
-          ],
-        ),
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            String selected = currentCode;
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Ручка
+                  Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Select Language',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 16),
+                  ...languages.map((lang) {
+                    final isSelected = selected == lang['code'];
+                    return GestureDetector(
+                      onTap: () {
+                        setModalState(() => selected = lang['code']!);
+                        // Применяем язык через InheritedWidget
+                        AppLanguageProvider.of(context)?.setLocale(lang['code']!);
+                        Navigator.pop(context);
+                        // Обновляем UI профиля (для trailing текста)
+                        if (mounted) setState(() {});
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFFB07183).withValues(alpha: 0.08)
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFFB07183)
+                                : Colors.grey[200]!,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(lang['flag']!, style: const TextStyle(fontSize: 24)),
+                            const SizedBox(width: 12),
+                            Text(
+                              lang['name']!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                                color: isSelected
+                                    ? const Color(0xFFB07183)
+                                    : Colors.black87,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFFB07183),
+                                size: 22,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
