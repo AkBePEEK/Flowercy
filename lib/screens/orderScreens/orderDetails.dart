@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/cartItem.dart';
 import '../../models/order.dart';
 import '../../models/orderItem.dart';
+import '../../services/language_service.dart';
 import '../../services/notificationService.dart';
 import '../../services/orderService.dart';
 import '../../services/userService.dart';
@@ -23,49 +24,51 @@ class OrderDetailsScreen extends StatefulWidget {
   State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
 }
 
-class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
+class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageStateMixin {
   // ✅ Переменные для выбора
   int _selectedDeliveryIndex = 0;
   int _selectedPaymentIndex = 0;
-  String _courierComment = 'Add';
-
-  // Данные доставки
-  final List<Map<String, String>> _deliveryOptions = [
-    {
-      'title': 'Faster',
-      'subtitle': 'in 45 - 55 min.',
-      'price': 'Free',
-    },
-    {
-      'title': 'Another time',
-      'subtitle': 'Choose date and time',
-      'price': '',
-    },
-    {
-      'title': 'Faster',
-      'subtitle': 'in 45 - 55 min.',
-      'price': 'Free',
-    },
-  ];
-
-  // Данные оплаты
-  final List<Map<String, String>> _paymentOptions = [
-    {
-      'title': 'Bank card',
-      'subtitle': 'Pay now',
-    },
-    {
-      'title': 'Kaspi.kz',
-      'subtitle': 'Pay now',
-    },
-    {
-      'title': 'Upon receipt',
-      'subtitle': 'Payment receipt',
-    },
-  ];
+  String _courierComment = ''; // Will initialize to t('addComment') in build
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
+    
+    // Данные доставки
+    final List<Map<String, String>> _deliveryOptions = [
+      {
+        'title': t('faster_delivery'),
+        'subtitle': t('delivery_time_subtitle'),
+        'price': 'Free',
+      },
+      {
+        'title': t('another_time'),
+        'subtitle': t('choose_date_time'),
+        'price': '',
+      },
+      {
+        'title': t('faster_delivery'),
+        'subtitle': t('delivery_time_subtitle'),
+        'price': 'Free',
+      },
+    ];
+
+    // Данные оплаты
+    final List<Map<String, String>> _paymentOptions = [
+      {
+        'title': t('bank_card'),
+        'subtitle': t('pay_now'),
+      },
+      {
+        'title': 'Kaspi.kz',
+        'subtitle': t('pay_now'),
+      },
+      {
+        'title': t('upon_receipt'),
+        'subtitle': t('payment_receipt'),
+      },
+    ];
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -75,9 +78,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Order details',
-          style: TextStyle(
+        title: Text(
+          t('orderDetails'),
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -92,36 +95,36 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildInfoSection(),
+                  _buildInfoSection(t),
                   const SizedBox(height: 24),
-                  _buildDeliverySection(),
+                  _buildDeliverySection(t, _deliveryOptions),
                   const SizedBox(height: 24),
-                  _buildImportantDetailsSection(),
+                  _buildImportantDetailsSection(t),
                   const SizedBox(height: 24),
-                  _buildPaymentSection(),
+                  _buildPaymentSection(t, _paymentOptions),
                   const SizedBox(height: 100),
                 ],
               ),
             ),
           ),
-          _buildBottomSection(context),
+          _buildBottomSection(context, t, _deliveryOptions, _paymentOptions),
         ],
       ),
     );
   }
 
-  Widget _buildInfoSection() {
+  Widget _buildInfoSection(AppTranslations t) {
     return Column(
       children: [
-        _buildInfoRow('Recipient', 'Lada'),
+        _buildInfoRow(t('recipient'), 'Lada'),
         const Divider(height: 1),
-        _buildInfoRow('Address', 'Astana, Uly Dala Avenue, 31'),
+        _buildInfoRow(t('address'), 'Astana, Uly Dala Avenue, 31'),
         const Divider(height: 1),
-        _buildInfoRow('Apt./Office/Floor/Entrance', 'Apt. 510 /...'),
+        _buildInfoRow(t('apt_office_floor_entrance'), t('apt_office_floor_entrance_hint')),
         const Divider(height: 1),
         _buildInfoRow(
-          'Comment for the courier',
-          _courierComment.isEmpty ? 'Add' : _courierComment,
+          t('courierComment'),
+          _courierComment.isEmpty ? t('addComment') : _courierComment,
           isAddable: true,
         ),
       ],
@@ -181,7 +184,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   // ✅ Доставка с кликабельными элементами
-  Widget _buildDeliverySection() {
+  Widget _buildDeliverySection(AppTranslations t, List<Map<String, String>> deliveryOptions) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -190,9 +193,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Delivery',
-                style: TextStyle(
+              Text(
+                t('delivery'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -200,7 +203,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               Row(
                 children: [
                   Text(
-                    _deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
+                    deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
@@ -217,10 +220,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             height: 120,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _deliveryOptions.length,
+              itemCount: deliveryOptions.length,
               separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final option = _deliveryOptions[index];
+                final option = deliveryOptions[index];
                 final isSelected = index == _selectedDeliveryIndex;
 
                 return GestureDetector(
@@ -228,7 +231,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     setState(() {
                       _selectedDeliveryIndex = index;
                     });
-                    print('✅ Delivery selected: ${option['title']} (${option['subtitle']})');
                   },
                   child: Container(
                     width: 160,
@@ -320,9 +322,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
-  // ... (_buildImportantDetailsSection без изменений) ...
-
-  Widget _buildImportantDetailsSection() {
+  Widget _buildImportantDetailsSection(AppTranslations t) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -331,18 +331,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Important details',
-                style: TextStyle(
+              Text(
+                t('important_details'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Row(
                 children: [
-                  const Text(
-                    'Select',
-                    style: TextStyle(
+                  Text(
+                    t('select_label'),
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -355,7 +355,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'For example: include your name in the SMS or arrange a surprise',
+            t('important_details_hint'),
             style: TextStyle(
               fontSize: 13,
               color: Colors.grey[600],
@@ -367,15 +367,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   }
 
   // ✅ Оплата с кликабельными элементами
-  Widget _buildPaymentSection() {
+  Widget _buildPaymentSection(AppTranslations t, List<Map<String, String>> paymentOptions) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Payment',
-            style: TextStyle(
+          Text(
+            t('payment'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -385,10 +385,10 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             height: 100,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: _paymentOptions.length,
+              itemCount: paymentOptions.length,
               separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final option = _paymentOptions[index];
+                final option = paymentOptions[index];
                 final isSelected = index == _selectedPaymentIndex;
 
                 return GestureDetector(
@@ -396,7 +396,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     setState(() {
                       _selectedPaymentIndex = index;
                     });
-                    print('✅ Payment selected: ${option['title']}');
                   },
                   child: Container(
                     width: 160,
@@ -479,7 +478,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   bool _isPlacingOrder = false;
 
-  Future<void> _placeOrder() async {
+  Future<void> _placeOrder(AppTranslations t, List<Map<String, String>> deliveryOptions, List<Map<String, String>> paymentOptions) async {
     setState(() => _isPlacingOrder = true);
 
     try {
@@ -500,9 +499,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         status: 'placed',
         recipient: '', // 🔹 Позже заполнишь из профиля пользователя
         address: 'Astana, Uly Dala Avenue, 31', // 🔹 Позже из сохранённых адресов
-        deliveryTime: _deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
-        payment: _paymentOptions[_selectedPaymentIndex]['title']!,
-        comment: _courierComment == 'Add' ? null : _courierComment,
+        deliveryTime: deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
+        payment: paymentOptions[_selectedPaymentIndex]['title']!,
+        comment: _courierComment.isEmpty ? null : _courierComment,
         createdAt: DateTime.now(),
       );
 
@@ -510,8 +509,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       await UserService().clearCart();
 
       await NotificationService().addNotification(
-        title: 'Order placed!',
-        body: 'Your order №${orderId.substring(0, 8).toUpperCase()} has been placed successfully.',
+        title: t('order_placed_title'),
+        body: t('order_placed_msg'),
         orderId: orderId,
       );
 
@@ -531,8 +530,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     } catch (e) {
       print('❌ Error placing order: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to place order. Try again.'),
+        SnackBar(
+          content: Text(t('failed_to_place_order')),
           backgroundColor: Colors.red,
         ),
       );
@@ -541,7 +540,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  Widget _buildBottomSection(BuildContext context) {
+  Widget _buildBottomSection(BuildContext context, AppTranslations t, List<Map<String, String>> deliveryOptions, List<Map<String, String>> paymentOptions) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -561,16 +560,16 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
 
               children: [
-                const Text(
-                  'Total',
-                  style: TextStyle(
+                Text(
+                  t('total'),
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Text(
-                  '42 480 ₸',
-                  style: TextStyle(
+                Text(
+                  '${widget.total} ₸', // Make total dynamic
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -581,7 +580,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             const SizedBox(height: 16),
 
             ElevatedButton(
-              onPressed: _isPlacingOrder ? null : _placeOrder,
+              onPressed: _isPlacingOrder ? null : () => _placeOrder(t, deliveryOptions, paymentOptions),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB07183),
                 foregroundColor: Colors.white,
@@ -596,7 +595,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
               )
                   : Text(
-                'Pay for the order  ${widget.total} ₸', // ← динамическая цена
+                '${t('payOrder')}  ${widget.total} ₸', // ← динамическая цена
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),

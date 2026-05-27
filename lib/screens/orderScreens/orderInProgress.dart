@@ -1,6 +1,7 @@
 import 'package:flowery_app/screens/orderScreens/orderComplete.dart';
 import 'package:flutter/material.dart';
 
+import '../../services/language_service.dart';
 import '../../services/orderService.dart';
 
 class OrderInProgressScreen extends StatefulWidget {
@@ -10,8 +11,8 @@ class OrderInProgressScreen extends StatefulWidget {
 
   const OrderInProgressScreen({
     super.key,
-    this.orderNumber = '№896743553',
-    this.status = 'Placed',
+    this.orderNumber = '',
+    this.status = 'placed',
     this.orderId = '',
   });
 
@@ -19,31 +20,32 @@ class OrderInProgressScreen extends StatefulWidget {
   State<OrderInProgressScreen> createState() => _OrderInProgressScreenState();
 }
 
-class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
+class _OrderInProgressScreenState extends State<OrderInProgressScreen> with LanguageStateMixin {
   bool _isCancelling = false;
 
-  Map<String, dynamic> _getStatusData() {
+  Map<String, dynamic> _getStatusData(AppTranslations t) {
     switch (widget.status.toLowerCase()) {
       case 'placed':
         return {'icon': 'assets/orderStatus/placed.png',
-          'title': 'The order has been placed', 'completedSteps': 1};
+          'title': t('order_status_placed'), 'completedSteps': 1};
       case 'collecting':
         return {'icon': 'assets/orderStatus/collecting.png',
-          'title': 'Collecting the order', 'completedSteps': 2};
+          'title': t('order_status_collecting'), 'completedSteps': 2};
       case 'delivery':
         return {'icon': 'assets/orderStatus/delivery.png',
-          'title': 'The courier is on his way', 'completedSteps': 3};
+          'title': t('order_status_delivery'), 'completedSteps': 3};
       case 'delivered':
         return {'icon': 'assets/orderStatus/delivered.png',
-          'title': 'The order has been delivered', 'completedSteps': 4};
+          'title': t('order_status_delivered'), 'completedSteps': 4};
       default:
         return {'icon': 'assets/orderStatus/placed.png',
-          'title': 'The order has been placed', 'completedSteps': 1};
+          'title': t('order_status_placed'), 'completedSteps': 1};
     }
   }
 
   // Отмена заказа
   Future<void> _cancelOrder() async {
+    final t = getTranslations();
     setState(() => _isCancelling = true);
     try {
       if (widget.orderId.isNotEmpty) {
@@ -52,8 +54,8 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
       if (mounted) {
         Navigator.pop(context); // вернуться назад
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Order cancelled'),
+          SnackBar(
+            content: Text(t('order_cancelled_msg')),
             backgroundColor: Colors.red,
           ),
         );
@@ -61,7 +63,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('${t('error')}: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -70,15 +72,16 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
   }
 
   void _showCancelDialog() {
+    final t = getTranslations();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Cancel order?'),
-        content: const Text('Are you sure you want to cancel this order?'),
+        title: Text(t('cancel_order_confirm_title')),
+        content: Text(t('cancel_order_confirm_msg')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('No'),
+            child: Text(t('no')),
           ),
           ElevatedButton(
             onPressed: () {
@@ -89,7 +92,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Yes'),
+            child: Text(t('yes')),
           ),
         ],
       ),
@@ -98,6 +101,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
 
   // Support — открываем телефон/чат (заглушка)
   void _openSupport() {
+    final t = getTranslations();
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -108,19 +112,19 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Support',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Text(
+              t('support'),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
             ListTile(
               leading: const Icon(Icons.phone, color: Color(0xFFB07183)),
-              title: const Text('Call support'),
+              title: Text(t('call_support')),
               onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.chat_bubble_outline, color: Color(0xFFB07183)),
-              title: const Text('Chat with us'),
+              title: Text(t('chat_with_us')),
               onTap: () => Navigator.pop(context),
             ),
           ],
@@ -131,7 +135,8 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final statusData = _getStatusData();
+    final t = getTranslations();
+    final statusData = _getStatusData(t);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -143,7 +148,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Order ${widget.orderNumber}',
+          '${t('order_number_label')} ${widget.orderNumber}',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -197,13 +202,13 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
                       children: [
                         _buildActionButton(
                           icon: Icons.headset_mic,
-                          label: 'Support',
+                          label: t('support'),
                           onTap: _openSupport,
                         ),
                         const SizedBox(width: 16),
                         _buildActionButton(
                           icon: Icons.list,
-                          label: 'Details',
+                          label: t('details'),
                           onTap: () => Navigator.push(context,
                             MaterialPageRoute(builder:
                                 (context) => OrderDetailScreen(orderNumber: widget.orderNumber,
@@ -217,7 +222,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
               ),
             ),
           ),
-          if (widget.status.toLowerCase() != 'delivered')
+          if (widget.status.toLowerCase() != 'delivered' && widget.status.toLowerCase() != 'cancelled')
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -251,9 +256,9 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
                       strokeWidth: 2,
                     ),
                   )
-                      : const Text(
-                    'Cancel order',
-                    style: TextStyle(
+                      : Text(
+                    t('cancel'),
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -344,12 +349,12 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> {
         image,
         width: 24,
         height: 24,
-        color: isCompleted ? Colors.white : Color(0xFFC8C8C8),
+        color: isCompleted ? Colors.white : const Color(0xFFC8C8C8),
         errorBuilder: (context, error, stackTrace) {
           // Fallback на иконку если изображение не найдено
           return Icon(
             icon,
-            color: isCompleted ? Colors.white : Color(0xFFC8C8C8),
+            color: isCompleted ? Colors.white : const Color(0xFFC8C8C8),
             size: 32,
           );
         },

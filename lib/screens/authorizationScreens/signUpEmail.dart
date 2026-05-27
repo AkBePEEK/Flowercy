@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../router/app_router.dart';
 import '../../services/auth_service.dart';
+import '../../services/language_service.dart';
 
 class SignUpEmailScreen extends StatefulWidget {
   const SignUpEmailScreen({super.key});
@@ -14,7 +15,7 @@ class SignUpEmailScreen extends StatefulWidget {
   State<SignUpEmailScreen> createState() => _SignUpEmailScreenState();
 }
 
-class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
+class _SignUpEmailScreenState extends State<SignUpEmailScreen> with LanguageStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -34,11 +35,12 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
 
   // 🔥 Основная функция регистрации
   Future<void> _handleSignUp() async {
+    final t = getTranslations();
     // 1. Валидация формы
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Пароли не совпадают'),
+        SnackBar(
+          content: Text(t('passwords_dont_match')),
           backgroundColor: Colors.red,
         ),
       );
@@ -68,8 +70,8 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
       // 5. Успех — показываем сообщение и переходим
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Регистрация успешна! 🎉'),
+          SnackBar(
+            content: Text(t('registration_success_msg')),
             backgroundColor: Colors.green,
           ),
         );
@@ -78,19 +80,19 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
       }
     } on FirebaseAuthException catch (e) {
       // Обработка ошибок Firebase
-      String message = 'Произошла ошибка';
+      String message = t('general_error');
       switch (e.code) {
         case 'email-already-in-use':
-          message = 'Этот email уже зарегистрирован';
+          message = t('email_already_in_use');
           break;
         case 'invalid-email':
-          message = 'Некорректный email';
+          message = t('invalid_email');
           break;
         case 'weak-password':
-          message = 'Пароль должен содержать минимум 6 символов';
+          message = t('min_6_chars');
           break;
         case 'operation-not-allowed':
-          message = 'Регистрация отключена';
+          message = t('operation_not_allowed');
           break;
       }
       if (mounted) {
@@ -102,7 +104,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Ошибка: ${e.toString()}'),
+            content: Text('${t('error')}: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -115,6 +117,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -141,10 +144,10 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                 const SizedBox(height: 32),
 
                 // Sign Up Title
-                const Center(
+                Center(
                   child: Text(
-                    'Sign Up',
-                    style: TextStyle(
+                    t('signUp'),
+                    style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
@@ -155,9 +158,9 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                 const SizedBox(height: 32),
 
                 // Email Field
-                const Text(
-                  'Email',
-                  style: TextStyle(
+                Text(
+                  t('email'),
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -173,18 +176,18 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                   child: TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter your email',
-                      hintStyle: TextStyle(color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: t('enter_email_hint'),
+                      hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Введите email';
-                      if (!value.contains('@')) return 'Введите корректный email';
+                      if (value == null || value.isEmpty) return t('enter_email_error');
+                      if (!value.contains('@')) return t('enter_valid_email');
                       return null;
                     },
                   ),
@@ -193,9 +196,9 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                 const SizedBox(height: 24),
 
                 // Password Field
-                const Text(
-                  'Password',
-                  style: TextStyle(
+                Text(
+                  t('password'),
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.black87,
@@ -211,18 +214,18 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                   child: TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: 'Enter your password',
-                      hintStyle: TextStyle(color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: t('enter_password_hint'),
+                      hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Введите пароль';
-                      if (value.length < 6) return 'Минимум 6 символов';
+                      if (value == null || value.isEmpty) return t('enter_password_error');
+                      if (value.length < 6) return t('min_6_chars');
                       return null;
                     },
                   ),
@@ -240,18 +243,18 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                   child: TextFormField(
                     controller: _confirmPasswordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
-                      hintText: 'Re-enter your password',
-                      hintStyle: TextStyle(color: Colors.grey),
+                    decoration: InputDecoration(
+                      hintText: t('confirm_password_hint'),
+                      hintStyle: const TextStyle(color: Colors.grey),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 16,
                       ),
                     ),
                     validator: (value) {
-                      if (value == null || value.isEmpty) return 'Подтвердите пароль';
-                      if (value != _passwordController.text) return 'Пароли не совпадают';
+                      if (value == null || value.isEmpty) return t('confirm_password_error');
+                      if (value != _passwordController.text) return t('passwords_dont_match');
                       return null;
                     },
                   ),
@@ -278,9 +281,9 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                       color: Colors.white,
                       size: 24,
                     ),
-                    label: const Text(
-                      'Sign Up',
-                      style: TextStyle(
+                    label: Text(
+                      t('signUp'),
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -296,7 +299,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "Already have an account? ",
+                      "${t('haveAccount')} ",
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                     GestureDetector(
@@ -308,9 +311,9 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                           ),
                         );
                       },
-                      child: const Text(
-                        'Sign in',
-                        style: TextStyle(
+                      child: Text(
+                        t('signIn'),
+                        style: const TextStyle(
                           color: Colors.black87,
                           fontSize: 14,
                           fontWeight: FontWeight.w600,

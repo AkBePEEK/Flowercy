@@ -1,5 +1,6 @@
 import 'package:flowery_app/screens/categoryScreens/shopDetail.dart';
 import 'package:flutter/material.dart';
+import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../../services/userService.dart';
@@ -15,7 +16,7 @@ class FlowerCategoryScreen extends StatefulWidget {
   State<FlowerCategoryScreen> createState() => _FlowerCategoryScreenState();
 }
 
-class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
+class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with LanguageStateMixin{
   String _selectedCategory = 'Flowers';
   bool _showFlowerFilterModal = false;
   int _currentFilterTab = 0;
@@ -34,31 +35,31 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
 
   // Фильтры
   final List<Map<String, dynamic>> _includedFlowers = [
-    {'name': 'Roses', 'selected': false},
-    {'name': 'Tulips', 'selected': false},
-    {'name': 'Peonies', 'selected': false},
-    {'name': 'Peony roses', 'selected': false},
-    {'name': 'Chrysanthemums', 'selected': false},
-    {'name': 'Alstroemerias', 'selected': false},
-    {'name': 'Amaryllis', 'selected': false},
-    {'name': 'Anemones', 'selected': false},
-    {'name': 'Asters', 'selected': false},
-    {'name': 'Cornflowers', 'selected': false},
-    {'name': 'Carnations', 'selected': false},
+    {'key': 'roses', 'selected': false},
+    {'key': 'tulips', 'selected': false},
+    {'key': 'peonies', 'selected': false},
+    {'key': 'peony_roses', 'selected': false},
+    {'key': 'chrysanthemums', 'selected': false},
+    {'key': 'alstroemerias', 'selected': false},
+    {'key': 'amaryllis', 'selected': false},
+    {'key': 'anemones', 'selected': false},
+    {'key': 'asters', 'selected': false},
+    {'key': 'cornflowers', 'selected': false},
+    {'key': 'carnations', 'selected': false},
   ];
 
   final List<Map<String, dynamic>> _excludedFlowers = [
-    {'name': 'Roses', 'selected': false},
-    {'name': 'Tulips', 'selected': false},
-    {'name': 'Peonies', 'selected': false},
-    {'name': 'Peony roses', 'selected': false},
-    {'name': 'Chrysanthemums', 'selected': false},
-    {'name': 'Alstroemerias', 'selected': false},
-    {'name': 'Amaryllis', 'selected': false},
-    {'name': 'Anemones', 'selected': false},
-    {'name': 'Asters', 'selected': false},
-    {'name': 'Cornflowers', 'selected': false},
-    {'name': 'Carnations', 'selected': false},
+    {'key': 'roses', 'selected': false},
+    {'key': 'tulips', 'selected': false},
+    {'key': 'peonies', 'selected': false},
+    {'key': 'peony_roses', 'selected': false},
+    {'key': 'chrysanthemums', 'selected': false},
+    {'key': 'alstroemerias', 'selected': false},
+    {'key': 'amaryllis', 'selected': false},
+    {'key': 'anemones', 'selected': false},
+    {'key': 'asters', 'selected': false},
+    {'key': 'cornflowers', 'selected': false},
+    {'key': 'carnations', 'selected': false},
   ];
 
   @override
@@ -70,6 +71,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
 
   // ✅ Загрузка данных из Firestore
   Future<void> _loadData() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -95,10 +97,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load data';
+        _error = t('error_loading_product');
         _isLoading = false;
       });
-      print('❌ Error loading data: $e');
     }
   }
 
@@ -117,8 +118,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
 
   // ✅ Применение фильтров
   void _applyFlowerFilters() {
-    final included = _includedFlowers.where((f) => f['selected'] == true).map((f) => f['name'] as String).toList();
-    final excluded = _excludedFlowers.where((f) => f['selected'] == true).map((f) => f['name'] as String).toList();
+    final t = getTranslations();
+    final included = _includedFlowers.where((f) => f['selected'] == true).map((f) => t(f['key'])).toList();
+    final excluded = _excludedFlowers.where((f) => f['selected'] == true).map((f) => t(f['key'])).toList();
 
     // 🔹 Здесь можно добавить фильтрацию на стороне клиента или сервера
     // Для простоты пока просто закрываем модалку
@@ -129,6 +131,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -138,7 +141,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
               children: [
                 FlowerCatalogHeader(
                   title: _selectedCategory == 'Flowers'
-                      ? 'Flowers and bouquets'
+                      ? t('flowers_and_bouquets')
                       : _selectedCategory,
                   onBackTap: () => Navigator.push(
                     context,
@@ -162,7 +165,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: _loadData,
-                          child: const Text('Retry'),
+                          child: Text(t('retry')),
                         ),
                       ],
                     ),
@@ -206,6 +209,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   }
 
   Widget _buildFlowerFilterModal() {
+    final t = getTranslations();
     return Column(
       children: [
         Container(
@@ -219,9 +223,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                 constraints: const BoxConstraints(),
               ),
               const SizedBox(width: 16),
-              const Text(
-                'Included flowers',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              Text(
+                t('included_flowers'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -246,7 +250,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                       ),
                     ),
                     child: Text(
-                      'Includes',
+                      t('includes'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: _currentFilterTab == 0
@@ -275,7 +279,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                       ),
                     ),
                     child: Text(
-                      'Excludes',
+                      t('excludes'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: _currentFilterTab == 1
@@ -332,9 +336,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Apply filters',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                t('apply_filters'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -344,13 +348,14 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   }
 
   Widget _buildFlowerFilterItem(Map<String, dynamic> flower) {
+    final t = getTranslations();
     return CheckboxListTile(
       value: flower['selected'],
       onChanged: (value) {
         setState(() => flower['selected'] = value ?? false);
       },
       title: Text(
-        flower['name'],
+        t(flower['key']),
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
@@ -360,6 +365,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
   }
 
   Widget _buildShopsSection() {
+    final t = getTranslations();
     // Если нет товаров для категории
     if (_products.isEmpty) {
       return Center(
@@ -370,7 +376,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
               Icon(Icons.local_florist, size: 80, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                'No products available for $_selectedCategory',
+                '${t('no_products_category')} $_selectedCategory',
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
@@ -380,10 +386,25 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
       );
     }
 
+    if (_shops.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     // Группируем товары по магазинам
     final shopsWithProducts = <Shop, List<Product>>{};
     for (var product in _products) {
-      final shop = _shops.firstWhere((s) => s.id == product.shopId, orElse: () => _shops.first);
+      final shop = _shops.firstWhere(
+            (s) => s.id == product.shopId,
+        orElse: () => Shop(         // ← возвращаем заглушку вместо краша
+          id: '',
+          name: t('unknown'),
+          rating: 0,
+          reviews: 0,
+          image: '',
+          address: '',
+          phone: '',
+        ),
+      );
       if (!shopsWithProducts.containsKey(shop)) {
         shopsWithProducts[shop] = [];
       }
@@ -396,7 +417,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${shopsWithProducts.length} shop${shopsWithProducts.length != 1 ? 's' : ''} nearby',
+            '${shopsWithProducts.length} ${t('shops_nearby')}',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
@@ -412,6 +433,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
 
   // ✅ Карточка магазина с реальными данными
   Widget _buildShopCard(Shop shop, List<Product> products) {
+    final t = getTranslations();
     // Берём первые 6 товаров для сетки
     final displayProducts = products.take(6).toList();
 
@@ -510,9 +532,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Today, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                            child: Text(
+                              '${t('today')}, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
@@ -541,7 +563,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> {
                           const Icon(Icons.local_shipping, size: 18),
                           const SizedBox(width: 4),
                           Text(
-                            shop.freeDelivery ? 'Free' : 'Paid',
+                            shop.freeDelivery ? t('free_delivery') : t('paid'),
                             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                         ],

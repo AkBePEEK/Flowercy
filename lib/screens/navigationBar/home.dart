@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/address.dart';
 import '../../models/product.dart';
+import '../../services/language_service.dart';
 import '../../services/notificationService.dart';
 import '../../services/productService.dart';
 import '../../services/userService.dart';
@@ -66,6 +67,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildCategories(BuildContext context) {
+    final t = getTranslations();
     return SizedBox(
       height: 98,
       child: ListView(
@@ -74,15 +76,15 @@ class HomeScreen extends StatelessWidget {
             parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          _buildCategoryItem('Flowers', Colors.purple[100]!,
+          _buildCategoryItem(t('flowers'), Colors.purple[100]!,
               'assets/flowers/homeScreen/flowersCategories.png', context),
-          _buildCategoryItem('Sweets', Colors.pink[100]!,
+          _buildCategoryItem(t('sweets'), Colors.pink[100]!,
               'assets/flowers/homeScreen/sweetsCategories.png', context),
-          _buildCategoryItem('Plants', Colors.green[100]!,
+          _buildCategoryItem(t('plants'), Colors.green[100]!,
               'assets/flowers/homeScreen/plantsCategories.png', context),
-          _buildCategoryItem('Bears', Colors.blue[100]!,
+          _buildCategoryItem(t('bears'), Colors.blue[100]!,
               'assets/flowers/homeScreen/bearCategories.png', context),
-          _buildCategoryItem('Balloons', Colors.orange[100]!,
+          _buildCategoryItem(t('balloons'), Colors.orange[100]!,
               'assets/flowers/homeScreen/balloonsCategories.png', context),
         ],
       ),
@@ -143,42 +145,23 @@ class HomeScreen extends StatelessWidget {
   }
 
 // Функция навигации (добавьте в класс _CatalogScreenState)
-  void _navigateToCategory(String category, BuildContext context) {
-    switch (category) {
-      case 'Flowers':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const FlowerCategoryScreen()),
-        );
-        break;
-      case 'Sweets':
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),
-        );
-        break;
-      // case 'Plants':
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => const PlantsCategoryScreen()),
-      //   );
-      //   break;
-      // case 'Bears':
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => const BearsCategoryScreen()),
-      //   );
-      //   break;
-      // case 'Balloons':
-      //   Navigator.push(
-      //     context,
-      //     MaterialPageRoute(builder: (context) => const BalloonsCategoryScreen()),
-      //   );
-      //   break;
+  void _navigateToCategory(String categoryName, BuildContext context) {
+    final t = getTranslations();
+    if (categoryName == t('flowers')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const FlowerCategoryScreen()),
+      );
+    } else if (categoryName == t('sweets')) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),
+      );
     }
   }
 
   Widget _buildFeatureCards(BuildContext context) {
+    final t = getTranslations();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GestureDetector(
@@ -227,9 +210,9 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  const Text(
-                    'AI Букетник',
-                    style: TextStyle(
+                  Text(
+                    t('ai_florist_title'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                       color: Colors.black87,
@@ -241,9 +224,9 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Описание
-              const Text(
-                'Выберите цветы, укажите бюджет и повод — система сгенерирует идеальный букет. Понравился результат? Отправьте его флористу!',
-                style: TextStyle(
+              Text(
+                t('ai_florist_description'),
+                style: const TextStyle(
                   fontSize: 13,
                   color: Colors.black54,
                   height: 1.5,
@@ -255,15 +238,15 @@ class HomeScreen extends StatelessWidget {
               // Шаги
               Row(
                 children: [
-                  _buildStep('🌸', 'Цветы'),
+                  _buildStep('🌸', t('flowers')),
                   const SizedBox(width: 8),
                   const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
                   const SizedBox(width: 8),
-                  _buildStep('✨', 'Генерация'),
+                  _buildStep('✨', t('generation')),
                   const SizedBox(width: 8),
                   const Icon(Icons.arrow_forward, size: 14, color: Colors.grey),
                   const SizedBox(width: 8),
-                  _buildStep('💐', 'Флористу'),
+                  _buildStep('💐', t('to_florist')),
                 ],
               ),
 
@@ -279,10 +262,10 @@ class HomeScreen extends StatelessWidget {
                         color: const Color(0xFFFF67B3),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
-                          'Создать букет с AI',
-                          style: TextStyle(
+                          t('create_ai_bouquet'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -336,6 +319,7 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildTopPick() {
+    final t = getTranslations();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -343,9 +327,9 @@ class HomeScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              const Text(
-                'Top pick ',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+              Text(
+                '${t('top_pick')} ',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
               ),
               const Text('🔥', style: TextStyle(fontSize: 20)),
             ],
@@ -369,7 +353,7 @@ class _NotificationBell extends StatefulWidget {
   State<_NotificationBell> createState() => _NotificationBellState();
 }
 
-class _NotificationBellState extends State<_NotificationBell> {
+class _NotificationBellState extends State<_NotificationBell> with LanguageStateMixin{
   int _unreadCount = 0;
 
   @override
@@ -437,7 +421,7 @@ class _TopPickCard extends StatefulWidget {
   State<_TopPickCard> createState() => _TopPickCardState();
 }
 
-class _TopPickCardState extends State<_TopPickCard> {
+class _TopPickCardState extends State<_TopPickCard> with LanguageStateMixin{
   Product? _product;
   bool _isLoading = true;
 
@@ -547,9 +531,9 @@ class _TopPickCardState extends State<_TopPickCard> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text(
-                  'Top Choice',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFFF67B3)),
+                child: Text(
+                  getTranslations()('top_choice'),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFFFF67B3)),
                 ),
               ),
             ),
@@ -586,7 +570,7 @@ class _HomeHeader extends StatefulWidget {
   State<_HomeHeader> createState() => _HomeHeaderState();
 }
 
-class _HomeHeaderState extends State<_HomeHeader> {
+class _HomeHeaderState extends State<_HomeHeader> with LanguageStateMixin{
   Address? _defaultAddress;
 
   @override
@@ -632,14 +616,13 @@ class _HomeHeaderState extends State<_HomeHeader> {
                   Row(
                     children: [
                       Text(
-                        _defaultAddress?.street ?? 'Add address',
+                        _defaultAddress?.street ?? getTranslations()('addAddress'),
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                       const SizedBox(width: 4),
                       const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey),
                     ],
-                  ),
-                ],
+                  ),                ],
               ),
             ),
           ),
@@ -657,7 +640,7 @@ class _ActiveOrderBanner extends StatefulWidget {
   State<_ActiveOrderBanner> createState() => _ActiveOrderBannerState();
 }
 
-class _ActiveOrderBannerState extends State<_ActiveOrderBanner> {
+class _ActiveOrderBannerState extends State<_ActiveOrderBanner> with LanguageStateMixin{
   Order? _activeOrder;
   bool _isLoading = true;
 
@@ -688,16 +671,18 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> {
   }
 
   String get _statusText {
+    final t = getTranslations();
     switch (_activeOrder?.status.toLowerCase()) {
-      case 'placed':     return 'Order placed';
-      case 'collecting': return 'Collecting order';
-      case 'delivery':   return 'Courier is on the way';
-      default:           return 'Order in progress';
+      case 'placed':     return t('status_placed');
+      case 'collecting': return t('status_collecting');
+      case 'delivery':   return t('status_delivery');
+      default:           return t('status_in_progress');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     // Пока грузится — ничего не показываем
     if (_isLoading) return const SizedBox.shrink();
 
@@ -764,7 +749,7 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> {
                   Text(
                     _activeOrder!.deliveryTime.isNotEmpty
                         ? _activeOrder!.deliveryTime
-                        : 'We deliver flowers today',
+                        : t('delivery_today'),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

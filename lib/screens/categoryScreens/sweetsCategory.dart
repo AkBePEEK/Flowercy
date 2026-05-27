@@ -1,5 +1,6 @@
 import 'package:flowery_app/screens/categoryScreens/shopDetail.dart';
 import 'package:flutter/material.dart';
+import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../mainScreen.dart';
@@ -14,7 +15,7 @@ class SweetsCategoryScreen extends StatefulWidget {
   State<SweetsCategoryScreen> createState() => _SweetsCategoryScreenState();
 }
 
-class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
+class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with LanguageStateMixin{
   String _selectedCategory = 'Sweets';
   bool _showSweetsFilterModal = false;
   int _currentFilterTab = 0;
@@ -31,72 +32,73 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
 
   // Фильтры
   final List<Map<String, dynamic>> _includedSweets = [
-    {'name': 'Chocolate', 'selected': false},
-    {'name': 'Macarons', 'selected': false},
-    {'name': 'Cupcakes', 'selected': false},
-    {'name': 'Cookies', 'selected': false},
-    {'name': 'Candy', 'selected': false},
-    {'name': 'Marshmallows', 'selected': false},
-    {'name': 'Caramel', 'selected': false},
-    {'name': 'Nuts', 'selected': false},
-    {'name': 'Berries', 'selected': false},
-    {'name': 'Honey', 'selected': false},
+    {'key': 'chocolate', 'selected': false},
+    {'key': 'macarons', 'selected': false},
+    {'key': 'cupcakes', 'selected': false},
+    {'key': 'cookies', 'selected': false},
+    {'key': 'candy', 'selected': false},
+    {'key': 'marshmallows', 'selected': false},
+    {'key': 'caramel', 'selected': false},
+    {'key': 'nuts', 'selected': false},
+    {'key': 'berries', 'selected': false},
+    {'key': 'honey', 'selected': false},
   ];
 
   final List<Map<String, dynamic>> _excludedSweets = [
-    {'name': 'Chocolate', 'selected': false},
-    {'name': 'Macarons', 'selected': false},
-    {'name': 'Cupcakes', 'selected': false},
-    {'name': 'Cookies', 'selected': false},
-    {'name': 'Candy', 'selected': false},
-    {'name': 'Marshmallows', 'selected': false},
-    {'name': 'Caramel', 'selected': false},
-    {'name': 'Nuts', 'selected': false},
-    {'name': 'Berries', 'selected': false},
-    {'name': 'Honey', 'selected': false},
+    {'key': 'chocolate', 'selected': false},
+    {'key': 'macarons', 'selected': false},
+    {'key': 'cupcakes', 'selected': false},
+    {'key': 'cookies', 'selected': false},
+    {'key': 'candy', 'selected': false},
+    {'key': 'marshmallows', 'selected': false},
+    {'key': 'caramel', 'selected': false},
+    {'key': 'nuts', 'selected': false},
+    {'key': 'berries', 'selected': false},
+    {'key': 'honey', 'selected': false},
   ];
 
+  // Store keys for localization
   static const List<Map<String, String>> _sweetsCategories = [
     {
-      'name': 'Sweets',
+      'key': 'sweets',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Cakes',
+      'key': 'cakes',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Macarons',
+      'key': 'macarons',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Chocolate',
+      'key': 'chocolate',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Cupcakes',
+      'key': 'cupcakes',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Cookies',
+      'key': 'cookies',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Candy',
+      'key': 'candy',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
     {
-      'name': 'Gift boxes',
+      'key': 'gift_boxes',
       'image': 'assets/flowers/homeScreen/sweetsCategories.png',
     },
   ];
 
   static const List<String> _sweetsFilters = [
-    'Price',
-    'Free delivery',
-    'Sweets type',
-    'Delivery time',
-    'Gift box',
+    'price_filter',
+    'free_delivery',
+    'sweets_type',
+    'delivery_time',
+    'gift_box',
   ];
 
   @override
@@ -107,6 +109,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
 
   // ✅ Загрузка данных из Firestore
   Future<void> _loadData() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -133,7 +136,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load data';
+        _error = t('error_loading_product');
         _isLoading = false;
       });
       print('❌ Error loading data: $e');
@@ -150,13 +153,14 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
 
   // ✅ Применение фильтров
   void _applySweetsFilters() {
+    final t = getTranslations();
     final included = _includedSweets
         .where((sweet) => sweet['selected'] == true)
-        .map((sweet) => sweet['name'] as String)
+        .map((sweet) => t(sweet['key']))
         .toList();
     final excluded = _excludedSweets
         .where((sweet) => sweet['selected'] == true)
-        .map((sweet) => sweet['name'] as String)
+        .map((sweet) => t(sweet['key']))
         .toList();
 
     // 🔹 Здесь можно добавить фильтрацию на стороне клиента или сервера
@@ -168,6 +172,16 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
+    
+    // Map categories and filters for FlowerCatalogHeader
+    final localizedCategories = _sweetsCategories.map((c) => {
+      'name': t(c['key']!),
+      'image': c['image']!,
+    }).toList();
+    
+    final localizedFilters = _sweetsFilters.map((f) => t(f)).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -177,7 +191,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
               children: [
                 FlowerCatalogHeader(
                   title: _selectedCategory == 'Sweets'
-                      ? 'Sweets and gifts'
+                      ? t('sweets_and_gifts')
                       : _selectedCategory,
                   onBackTap: () => Navigator.push(
                     context,
@@ -188,8 +202,8 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                     setState(() => _showSweetsFilterModal = true);
                   },
                   selectedCategory: _selectedCategory,
-                  categories: _sweetsCategories,
-                  filters: _sweetsFilters,
+                  categories: localizedCategories,
+                  filters: localizedFilters,
                 ),
                 Expanded(
                   child: _isLoading
@@ -205,7 +219,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                                   const SizedBox(height: 16),
                                   ElevatedButton(
                                     onPressed: _loadData,
-                                    child: const Text('Retry'),
+                                    child: Text(t('retry')),
                                   ),
                                 ],
                               ),
@@ -249,6 +263,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
   }
 
   Widget _buildSweetsFilterModal() {
+    final t = getTranslations();
     return Column(
       children: [
         Container(
@@ -262,9 +277,9 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                 constraints: const BoxConstraints(),
               ),
               const SizedBox(width: 16),
-              const Text(
-                'Included sweets',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              Text(
+                t('included_sweets'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
           ),
@@ -289,7 +304,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                       ),
                     ),
                     child: Text(
-                      'Includes',
+                      t('includes'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: _currentFilterTab == 0
@@ -318,7 +333,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                       ),
                     ),
                     child: Text(
-                      'Excludes',
+                      t('excludes'),
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: _currentFilterTab == 1
@@ -374,9 +389,9 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Apply filters',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              child: Text(
+                t('apply_filters'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -386,13 +401,14 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
   }
 
   Widget _buildSweetsFilterItem(Map<String, dynamic> sweet) {
+    final t = getTranslations();
     return CheckboxListTile(
       value: sweet['selected'],
       onChanged: (value) {
         setState(() => sweet['selected'] = value ?? false);
       },
       title: Text(
-        sweet['name'],
+        t(sweet['key']),
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
       checkboxShape:
@@ -403,6 +419,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
   }
 
   Widget _buildShopsSection() {
+    final t = getTranslations();
     // Если нет товаров для категории
     if (_products.isEmpty) {
       return Center(
@@ -413,7 +430,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
               Icon(Icons.cake_outlined, size: 80, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                'No products available for $_selectedCategory',
+                '${t('no_products_category')} $_selectedCategory',
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
@@ -427,7 +444,16 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
     final shopsWithProducts = <Shop, List<Product>>{};
     for (var product in _products) {
       final shop = _shops.firstWhere((s) => s.id == product.shopId,
-          orElse: () => _shops.first);
+          orElse: () => Shop(         // ← возвращаем заглушку вместо краша
+            id: '',
+            name: t('unknown'),
+            rating: 0,
+            reviews: 0,
+            image: '',
+            address: '',
+            phone: '',
+          ),
+      );
       if (!shopsWithProducts.containsKey(shop)) {
         shopsWithProducts[shop] = [];
       }
@@ -440,7 +466,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '${shopsWithProducts.length} shop${shopsWithProducts.length != 1 ? 's' : ''} nearby',
+            '${shopsWithProducts.length} ${t('shops_nearby')}',
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
@@ -456,6 +482,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
 
   // ✅ Карточка магазина с реальными данными
   Widget _buildShopCard(Shop shop, List<Product> products) {
+    final t = getTranslations();
     // Берём первые 6 товаров для сетки
     final displayProducts = products.take(6).toList();
 
@@ -569,9 +596,9 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Today, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
-                              style: TextStyle(
+                            child: Text(
+                              '${t('today')}, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
+                              style: const TextStyle(
                                   fontSize: 11, fontWeight: FontWeight.w700),
                             ),
                           ),
@@ -603,7 +630,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> {
                           const Icon(Icons.local_shipping, size: 18),
                           const SizedBox(width: 4),
                           Text(
-                            shop.freeDelivery ? 'Free' : 'Paid',
+                            shop.freeDelivery ? t('free_delivery') : t('paid'),
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 14),
                           ),

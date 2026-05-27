@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flowery_app/screens/categoryScreens/productDetail.dart';
+import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../../services/userService.dart';
@@ -15,7 +16,7 @@ class ShopDetailScreen extends StatefulWidget {
   State<ShopDetailScreen> createState() => _ShopDetailScreenState();
 }
 
-class _ShopDetailScreenState extends State<ShopDetailScreen> {
+class _ShopDetailScreenState extends State<ShopDetailScreen> with LanguageStateMixin {
   final ShopService _shopService = ShopService();
   final ProductService _productService = ProductService();
   final UserService _userService = UserService();
@@ -38,6 +39,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
 
   // ✅ Загрузка данных магазина и его товаров
   Future<void> _loadData() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -46,7 +48,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
     try {
       // 1. Загружаем магазин
       final shop = await _shopService.getShopById(widget.shopId);
-      if (shop == null) throw Exception('Shop not found');
+      if (shop == null) throw Exception(t('shop_not_found'));
 
       // 2. Загружаем товары этого магазина
       final products = await _productService.getProductsByShop(widget.shopId);
@@ -58,7 +60,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load shop';
+        _error = t('error_loading_shop');
         _isLoading = false;
       });
       print('❌ Error loading shop: $e');
@@ -81,6 +83,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: _isLoading
@@ -92,12 +95,12 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
           children: [
             Text(_error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadData, child: const Text('Retry')),
+            ElevatedButton(onPressed: _loadData, child: Text(t('retry'))),
           ],
         ),
       )
           : _shop == null
-          ? const Center(child: Text('Shop not found'))
+          ? Center(child: Text(t('shop_not_found')))
           : CustomScrollView(
         slivers: [
           // AppBar
@@ -117,9 +120,9 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                 onPressed: _toggleFavorite,
               ),
             ],
-            title: const Text(
-              'Shop',
-              style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
+            title: Text(
+              t('markets'), // Or just 'Shop' if we have it
+              style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
             ),
             centerTitle: true,
             pinned: true,
@@ -172,7 +175,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                           ),
                           const SizedBox(width: 16),
                           Text(
-                            '${_shop!.reviews} reviews',
+                            '${_shop!.reviews} ${t('reviews_count')}',
                             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                           ),
                         ],
@@ -187,9 +190,9 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                         child: OutlinedButton.icon(
                           onPressed: () {},
                           icon: const Icon(Icons.chat_bubble_outline),
-                          label: const Text(
-                            'Contact shop',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                          label: Text(
+                            t('contact_shop'),
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                           ),
                           style: OutlinedButton.styleFrom(
                             side: const BorderSide(color: Color(0xFFB07183)),
@@ -204,16 +207,16 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                       const SizedBox(height: 24),
 
                       // Shop Info
-                      _buildInfoCard(Icons.description, 'About', _shop!.address),
+                      _buildInfoCard(Icons.description, t('about'), _shop!.address),
                       const SizedBox(height: 12),
-                      _buildInfoCard(Icons.location_on, 'Address', _shop!.address),
+                      _buildInfoCard(Icons.location_on, t('address'), _shop!.address),
                       const SizedBox(height: 12),
-                      _buildInfoCard(Icons.access_time, 'Working hours', '9:00 - 21:00'),
+                      _buildInfoCard(Icons.access_time, t('working_hours'), '9:00 - 21:00'),
                       const SizedBox(height: 12),
                       _buildInfoCard(
                         Icons.local_shipping,
-                        'Delivery',
-                        _shop!.freeDelivery ? 'Free delivery in 2 hours' : 'Paid delivery',
+                        t('delivery'),
+                        _shop!.freeDelivery ? t('free_delivery_in_hours') : t('paid_delivery'),
                         valueColor: Colors.green,
                       ),
 
@@ -225,12 +228,12 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'Products',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                            Text(
+                              t('bouquets'), // Or 'Products'
+                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                             ),
                             Text(
-                              '${_products.length} items',
+                              '${_products.length} ${t('items_count')}',
                               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                             ),
                           ],
@@ -248,7 +251,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Center(
                       child: Text(
-                        'No products yet',
+                        t('noResults'),
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ),
@@ -312,6 +315,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
   }
 
   Widget _buildProductCard(Product product) {
+    final t = getTranslations();
     return GestureDetector(
       onTap: () {
         Navigator.push(
@@ -371,7 +375,7 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> {
                       const SizedBox(width: 2),
                       Text('${product.rating}', style: const TextStyle(fontSize: 11)),
                       const Spacer(),
-                      Text('${product.reviews} sales', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
+                      Text('${product.reviews} ${t('sales_count')}', style: TextStyle(fontSize: 10, color: Colors.grey[600])),
                     ],
                   ),
                   const SizedBox(height: 6),

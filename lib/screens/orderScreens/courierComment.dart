@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../services/language_service.dart';
+
 class CourierCommentSheet extends StatefulWidget {
   const CourierCommentSheet({super.key});
 
@@ -18,6 +20,7 @@ class _CourierCommentSheetState extends State<CourierCommentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: const BoxDecoration(
@@ -30,9 +33,9 @@ class _CourierCommentSheetState extends State<CourierCommentSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Заголовок
-          const Text(
-            'Comment for the courier',
-            style: TextStyle(
+          Text(
+            t('courierComment'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -40,9 +43,9 @@ class _CourierCommentSheetState extends State<CourierCommentSheet> {
           const SizedBox(height: 24),
 
           // Подсказка
-          const Text(
-            'Please write your wishes regarding the order composition, packaging and decoration.',
-            style: TextStyle(
+          Text(
+            t('courier_comment_hint'),
+            style: const TextStyle(
               fontSize: 14,
               color: Colors.grey,
               height: 1.4,
@@ -56,7 +59,7 @@ class _CourierCommentSheetState extends State<CourierCommentSheet> {
             controller: _commentController,
             maxLines: 8,
             textAlignVertical: TextAlignVertical.top,
-            decoration: InputDecoration(
+            decoration: const InputDecoration(
               hintText: '',
               border: InputBorder.none,
               enabledBorder: InputBorder.none,
@@ -87,9 +90,9 @@ class _CourierCommentSheetState extends State<CourierCommentSheet> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Ready',
-                style: TextStyle(
+              child: Text(
+                t('ready'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),

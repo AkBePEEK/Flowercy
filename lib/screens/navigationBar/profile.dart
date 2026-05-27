@@ -16,7 +16,7 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen> with LanguageStateMixin{
 
   // ✅ Состояния для данных пользователя
   firebase_auth.User? _authUser;           // Пользователь из Firebase Auth
@@ -32,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ✅ Загрузка данных пользователя
   Future<void> _loadUserData() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -63,7 +64,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load profile';
+        _error = t('error_load_profile');
         _isLoading = false;
       });
     }
@@ -71,6 +72,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ✅ Выход из аккаунта
   Future<void> _handleSignOut() async {
+    final t = getTranslations();
     try {
       // 1. Показываем индикатор загрузки
       setState(() => _isLoading = true);
@@ -87,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      _showError('Failed to sign out. Please try again.');
+      _showError(t('error_sign_out'));
     }
   }
 
@@ -105,6 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       body: SafeArea(
@@ -122,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: _loadUserData,
-                      child: const Text('Retry'),
+                      child: Text(t('retry')),
                     ),
                   ],
                 ),
@@ -153,6 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ✅ Header с профилем (динамические данные)
   Widget _buildProfileHeader() {
+    final t = getTranslations();
     // Получаем имя: из Firestore > из Auth email > заглушка
     final displayName = _firestoreUser?.name ??
         _authUser?.email?.split('@').first ??
@@ -203,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     // ✅ Показываем email если нет имени в Firestore
                     Text(
-                      email.isNotEmpty ? email : 'Settings',
+                      email.isNotEmpty ? email : t('settings'),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -227,12 +231,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Меню
   Widget _buildMenuSection() {
+    final t = getTranslations();
     return Container(
       color: Colors.white,
       child: Column(
         children: [
           _buildMenuItem(
-            'My orders',
+            t.myOrders,
             hasArrow: true,
             onTap: () {
               Navigator.push(
@@ -245,7 +250,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
-            'Notifications',
+            t('notifications'),
             hasArrow: true,
             onTap: () {
               Navigator.push(
@@ -256,7 +261,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
-            'Language',
+            t.language,
             trailing: ValueListenableBuilder<String>(
               valueListenable: appLanguageNotifier,
               builder: (_, code, __) => Text(code.toUpperCase()),
@@ -265,7 +270,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
-            'Saved addresses',
+            t.savedAddresses,
             hasArrow: true,
             onTap: () {
               Navigator.push(
@@ -278,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const Divider(height: 1, indent: 16),
           _buildMenuItem(
-            'About us',
+            t('about_us'),
             hasArrow: true,
             onTap: () {
               // 🔹 Показать информацию о приложении
@@ -310,15 +315,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ✅ Диалог "О приложении" (заглушка)
   void _showAboutDialog() {
+    final t = getTranslations();
     showAboutDialog(
       context: context,
-      applicationName: 'Flowery App',
+      applicationName: t('app_name'),
       applicationVersion: '1.0.0',
       applicationIcon: const Icon(Icons.local_florist, color: Color(0xFFB07183)),
       children: [
-        const Text(
-          'Your favorite flower delivery app. Made with ❤️ in Astana.',
-        ),
+        Text(t('about_app_description')),
       ],
     );
   }
@@ -359,6 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // ✅ Кнопка Sign out (с подтверждением)
   Widget _buildSignOutButton() {
+    final t = getTranslations();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: SizedBox(
@@ -374,9 +379,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: 20,
             child: CircularProgressIndicator(strokeWidth: 2),
           )
-              : const Text(
-            'Sign out',
-            style: TextStyle(
+              : Text(
+            t('logout'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.normal,
               color: Color(0xFFFE0202),
@@ -401,7 +406,7 @@ class _LanguageSelectorSheet extends StatefulWidget {
   State<_LanguageSelectorSheet> createState() => _LanguageSelectorSheetState();
 }
 
-class _LanguageSelectorSheetState extends State<_LanguageSelectorSheet> {
+class _LanguageSelectorSheetState extends State<_LanguageSelectorSheet> with LanguageStateMixin{
   late String _selected;
 
   final _languages = const [
@@ -418,6 +423,7 @@ class _LanguageSelectorSheetState extends State<_LanguageSelectorSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Align(
       alignment: Alignment.bottomCenter,
       child: Material(
@@ -439,9 +445,9 @@ class _LanguageSelectorSheetState extends State<_LanguageSelectorSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text(
-                'Select Language',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              Text(
+                t('selectLanguage'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 16),
               ..._languages.map((lang) {

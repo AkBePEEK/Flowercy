@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../models/order.dart';
+import '../../services/language_service.dart';
 import '../../services/orderService.dart';
 import 'orderComplete.dart';
 
-class MyOrdersScreen extends StatelessWidget {
+class MyOrdersScreen extends StatefulWidget {
   const MyOrdersScreen({super.key});
 
   @override
+  State<MyOrdersScreen> createState() => _MyOrdersScreenState();
+}
+
+class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin {
+  @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
@@ -18,9 +25,9 @@ class MyOrdersScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'My orders',
-          style: TextStyle(
+        title: Text(
+          t('myOrders'),
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -35,17 +42,17 @@ class MyOrdersScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Ошибка: ${snapshot.error}'));
+            return Center(child: Text('${t('error')}: ${snapshot.error}'));
           }
           final orders = snapshot.data ?? [];
           if (orders.isEmpty) {
-            return const Center(child: Text('Заказов пока нет 🌸'));
+            return Center(child: Text(t('no_orders_yet')));
           }
           return ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 12),
             itemCount: orders.length,
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, index) => _buildOrderItemFromOrder(orders[index], context),
+            itemBuilder: (context, index) => _buildOrderItemFromOrder(orders[index], context, t),
           );
         },
       ),
@@ -60,6 +67,7 @@ class MyOrdersScreen extends StatelessWidget {
         required String productName,
         required String price,
         required String orderId,
+        required AppTranslations t,
         VoidCallback? onTap, // ✅ Новый параметр
       }) {
     return GestureDetector( // ✅ Оборачиваем в GestureDetector
@@ -166,18 +174,18 @@ class MyOrdersScreen extends StatelessWidget {
                 minimumSize: const Size(0, 0),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'Order details',
-                    style: TextStyle(
+                    t('orderDetails'),
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  SizedBox(width: 4),
-                  Icon(Icons.chevron_right, size: 16),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, size: 16),
                 ],
               ),
             ),
@@ -188,16 +196,17 @@ class MyOrdersScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildOrderItemFromOrder(Order order, BuildContext context) {
+  Widget _buildOrderItemFromOrder(Order order, BuildContext context, AppTranslations t) {
     final firstItem = order.items.firstOrNull; // ✅ Первый товар для превью
     return _buildOrderItem(
       context,
-      status: order.statusText, // ✅ "В процессе", "Доставлен" из модели
+      status: t('order_status_${order.status.toLowerCase()}'), // ✅ Локализованный статус
       statusColor: Color(int.parse('0xFF${order.statusColorHex}')), // ✅ Цвет из модели
       orderNumber: '№${order.id}',
-      productName: firstItem?.name ?? 'Заказ',
+      productName: firstItem?.name ?? t('order_preview'),
       price: order.formattedTotal, // ✅ "42 480 ₸" из модели
       orderId:     order.id, // ✅ Передаём ID заказа для навигации
+      t: t,
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(

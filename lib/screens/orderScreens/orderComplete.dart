@@ -1,8 +1,7 @@
-// lib/screens/orderScreens/orderComplete.dart
-
 import 'package:flutter/material.dart';
 import '../../models/order.dart';
 import '../../models/orderItem.dart';
+import '../../services/language_service.dart';
 import '../../services/orderService.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -19,7 +18,7 @@ class OrderDetailScreen extends StatefulWidget {
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
-class _OrderDetailScreenState extends State<OrderDetailScreen> {
+class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStateMixin{
   Order? _order;
   bool _isLoading = true;
   String? _error;
@@ -32,9 +31,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   Future<void> _loadOrder() async {
+    final t = getTranslations();
     if (widget.orderId.isEmpty) {
       setState(() {
-        _error = 'Order ID not provided';
+        _error = t('order_id_not_provided');
         _isLoading = false;
       });
       return;
@@ -48,7 +48,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load order';
+        _error = t('failed_to_load_order');
         _isLoading = false;
       });
     }
@@ -61,6 +61,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // Повторить заказ — создаём новый с теми же товарами
   Future<void> _repeatOrder() async {
+    final t = getTranslations();
     if (_order == null) return;
     setState(() => _isRepeating = true);
 
@@ -84,8 +85,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order repeated successfully! 🌸'),
+        SnackBar(
+          content: Text(t('order_repeated_success')),
           backgroundColor: Colors.green,
         ),
       );
@@ -94,7 +95,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to repeat order: $e'),
+          content: Text('${t('failed_to_repeat_order')}: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -105,6 +106,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     final displayNumber = widget.orderNumber.isNotEmpty
         ? widget.orderNumber
         : (widget.orderId.isNotEmpty ? '№${widget.orderId}' : '№—');
@@ -119,7 +121,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Order $displayNumber',
+          '${t('order_number_label')} $displayNumber',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
@@ -133,7 +135,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           : _error != null
           ? _buildErrorState()
           : _order == null
-          ? const Center(child: Text('Order not found'))
+          ? Center(child: Text(t('order_not_found')))
           : _buildContent(),
     );
   }
@@ -141,6 +143,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // ── Контент ──────────────────────────────────────────────────
 
   Widget _buildContent() {
+    final t = getTranslations();
     final order = _order!;
 
     return Column(
@@ -167,7 +170,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          order.statusText,
+                          t('order_status_${order.status.toLowerCase()}'), // Map status to localized
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -202,7 +205,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '${order.itemsCount} item${order.itemsCount != 1 ? 's' : ''}',
+                        '${order.itemsCount} ${t('items_count')}',
                         style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                       ),
                       Text(
@@ -298,6 +301,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // ── Информация о заказе ───────────────────────────────────────
 
   Widget _buildInfoSection(Order order) {
+    final t = getTranslations();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
@@ -307,11 +311,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         children: [
           if (order.recipient.isNotEmpty)
-            _buildInfoRow('Recipient', order.recipient),
+            _buildInfoRow(t('recipient'), order.recipient),
           if (order.address.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
             _buildInfoRow(
-              'Address',
+              t('address'),
               order.apartment != null && order.apartment!.isNotEmpty
                   ? '${order.address}, ${order.apartment}'
                   : order.address,
@@ -319,15 +323,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ],
           if (order.deliveryTime.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
-            _buildInfoRow('Delivery time', order.deliveryTime),
+            _buildInfoRow(t('delivery_time'), order.deliveryTime),
           ],
           if (order.payment.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
-            _buildInfoRow('Payment', order.payment),
+            _buildInfoRow(t('payment'), order.payment),
           ],
           if (order.comment != null && order.comment!.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
-            _buildInfoRow('Comment', order.comment!),
+            _buildInfoRow(t('courierComment'), order.comment!),
           ],
         ],
       ),
@@ -361,6 +365,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // ── Кнопка Repeat order ───────────────────────────────────────
 
   Widget _buildBottomButton() {
+    final t = getTranslations();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -394,9 +399,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               strokeWidth: 2,
             ),
           )
-              : const Text(
-            'Repeat order',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              : Text(
+            t('repeatOrder'),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -406,6 +411,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // ── Экран ошибки ──────────────────────────────────────────────
 
   Widget _buildErrorState() {
+    final t = getTranslations();
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -419,7 +425,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFB07183),
             ),
-            child: const Text('Retry', style: TextStyle(color: Colors.white)),
+            child: Text(t('retry'), style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

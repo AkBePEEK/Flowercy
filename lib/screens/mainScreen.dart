@@ -1,5 +1,7 @@
 import 'package:flowery_app/screens/navigationBar/search.dart';
 import 'package:flutter/material.dart';
+import '../main.dart';
+import '../services/language_service.dart';
 import 'navigationBar/cart.dart';
 import 'navigationBar/favorite.dart';
 import 'navigationBar/home.dart';
@@ -25,14 +27,29 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    appLanguageNotifier.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    appLanguageNotifier.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() => setState(() {});
+
+  @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       body: _pages[_currentIndex],
-      bottomNavigationBar: _buildBottomNav(),
+      bottomNavigationBar: _buildBottomNav(t),
     );
   }
 
-  Widget _buildBottomNav() {
+  Widget _buildBottomNav(AppTranslations t) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
@@ -52,27 +69,27 @@ class _MainScreenState extends State<MainScreen> {
           _buildNavItem(
             icon: null,
             image: "assets/flowers/homeActive.png", // Ваше изображение
-            label: 'Main',
+            label: t('home'),
             index: 0,
           ),
           _buildNavItem(
             icon: Icons.search,
-            label: 'Search',
+            label: t('search'),
             index: 1,
           ),
           _buildNavItem(
             icon: Icons.favorite_border,
-            label: 'Favorite',
+            label: t('favorites'),
             index: 2,
           ),
           _buildNavItem(
             icon: Icons.shopping_bag_outlined,
-            label: 'Cart',
+            label: t('cart'),
             index: 3,
           ),
           _buildNavItem(
             icon: Icons.person_outline,
-            label: 'Profile',
+            label: t('profile'),
             index: 4,
           ),
         ],
@@ -85,7 +102,8 @@ class _MainScreenState extends State<MainScreen> {
     String? image,
     required String label,
     required int index,
-  }) {
+  })
+  {
     final isActive = _currentIndex == index;
 
     return GestureDetector(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/shop.dart';
+import '../../services/language_service.dart';
 import '../../services/shopService.dart';
 import '../searchResults.dart';
 
@@ -10,7 +11,7 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen> with LanguageStateMixin {
   final TextEditingController _searchController = TextEditingController();
 
   // ✅ Добавьте сервис и переменные состояния
@@ -30,6 +31,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // ✅ Метод загрузки магазинов из Firestore
   Future<void> _loadShops() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -43,7 +45,7 @@ class _SearchScreenState extends State<SearchScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load shops';
+        _error = t('error_load_shops');
         _isLoading = false;
       });
       print('❌ Error loading shops: $e');
@@ -73,6 +75,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -93,22 +96,22 @@ class _SearchScreenState extends State<SearchScreen> {
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loadShops,
-                  child: const Text('Retry'),
+                  child: Text(t('retry')),
                 ),
               ],
             ),
           )
               : _shops.isEmpty
-              ? const Center(child: Text('No shops found')) // ✅ Пустой список
+              ? Center(child: Text(t('no_shops_found'))) // ✅ Пустой список
               : SingleChildScrollView(  // ✅ Список магазинов
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    'Most popular',
-                    style: TextStyle(
+                    t('most_popular'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                     ),
@@ -130,6 +133,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   // Search Bar
   Widget _buildSearchBar() {
+    final t = getTranslations();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -148,7 +152,7 @@ class _SearchScreenState extends State<SearchScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Flowers, markets, or gifts',
+                hintText: t('search_hint_full'),
                 hintStyle: TextStyle(color: Colors.grey[600]),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -174,6 +178,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // Shop Item
   // ✅ Обновленная подпись метода
   Widget _buildShopItem(Shop shop) {
+    final t = getTranslations();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       padding: const EdgeInsets.all(12),
@@ -231,7 +236,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     const Icon(Icons.star, color: Colors.amber, size: 18),
                     const SizedBox(width: 4),
                     Text(
-                      '${shop.rating}/5 rating',  // ✅ Из объекта shop
+                      '${shop.rating}/5 ${t('rating')}',  // ✅ Из объекта shop
                       style: const TextStyle(fontSize: 14),
                     ),
                     const SizedBox(width: 8),
@@ -240,7 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     const Icon(Icons.chat_bubble_outline, size: 16),
                     const SizedBox(width: 4),
                     Text(
-                      '${shop.reviews} review',  // ✅ Из объекта shop
+                      '${shop.reviews} ${t('review')}',  // ✅ Из объекта shop
                       style: const TextStyle(fontSize: 14),
                     ),
                   ],
@@ -274,7 +279,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          'Free delivery',
+                          t('free_delivery'),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.pink[700],
