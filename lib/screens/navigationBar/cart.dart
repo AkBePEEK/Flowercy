@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/cartItem.dart';
+import '../../services/language_service.dart';
 import '../../services/userService.dart';
 import '../orderScreens/orderDetails.dart';
 
@@ -11,7 +12,7 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> {
+class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
   final UserService _userService = UserService();
 
   // ✅ Состояния для корзины
@@ -27,6 +28,7 @@ class _CartScreenState extends State<CartScreen> {
 
   // ✅ Загрузка корзины из Firestore
   Future<void> _loadCart() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -40,7 +42,7 @@ class _CartScreenState extends State<CartScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load cart';
+        _error = t('error_load_cart');
         _isLoading = false;
       });
       print('❌ Error loading cart: $e');
@@ -70,14 +72,15 @@ class _CartScreenState extends State<CartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Cart',
-          style: TextStyle(
+        title: Text(
+          t.cart,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -107,7 +110,7 @@ class _CartScreenState extends State<CartScreen> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadCart,
-                    child: const Text('Retry'),
+                    child: Text(t('retry')),
                   ),
                 ],
               ),
@@ -148,6 +151,7 @@ class _CartScreenState extends State<CartScreen> {
 
   // ✅ Экран пустой корзины
   Widget _buildEmptyCart() {
+    final t = getTranslations();
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -155,7 +159,7 @@ class _CartScreenState extends State<CartScreen> {
           Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'Your cart is empty',
+            t('cartEmpty'),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -164,7 +168,7 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Add some flowers to get started',
+            t('addSomeFlowers'),
             style: TextStyle(fontSize: 14, color: Colors.grey[400]),
           ),
           const SizedBox(height: 24),
@@ -176,7 +180,7 @@ class _CartScreenState extends State<CartScreen> {
               backgroundColor: const Color(0xFFB07183),
               foregroundColor: Colors.white,
             ),
-            child: const Text('Browse flowers'),
+            child: Text(t('browseFlowers')),
           ),
         ],
       ),
@@ -289,6 +293,7 @@ class _CartScreenState extends State<CartScreen> {
 
   // Комментарий (без изменений, можно добавить сохранение в будущем)
   Widget _buildCommentSection() {
+    final t = getTranslations();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -299,15 +304,15 @@ class _CartScreenState extends State<CartScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Text(
-            'Comment for the seller',
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          Text(
+            t('commentSeller'),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           Row(
             children: [
-              const Text(
-                'Add',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Text(
+                t('addComment'),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 4),
               const Icon(Icons.chevron_right, size: 16),
@@ -320,14 +325,15 @@ class _CartScreenState extends State<CartScreen> {
 
   // People add to the order (можно сделать интерактивным позже)
   Widget _buildPeopleAddSection() {
+    final t = getTranslations();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'People add to the order',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          Text(
+            t('people_add_to_order'),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 12),
           Container(
@@ -360,9 +366,9 @@ class _CartScreenState extends State<CartScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Postcard',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                          Text(
+                            t('postcard'),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                           ),
                           const SizedBox(height: 4),
                           const Text(
@@ -393,6 +399,7 @@ class _CartScreenState extends State<CartScreen> {
 
   // Промокод (можно добавить функционал позже)
   Widget _buildPromocodeSection() {
+    final t = getTranslations();
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
@@ -406,13 +413,13 @@ class _CartScreenState extends State<CartScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Promocode',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                Text(
+                  t('promocode'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'You have one promocode',
+                  t('youHavePromocode'),
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
@@ -420,9 +427,9 @@ class _CartScreenState extends State<CartScreen> {
           ),
           Row(
             children: [
-              const Text(
-                'Use',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              Text(
+                t('usePromocode'),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(width: 4),
               const Icon(Icons.chevron_right, size: 16),
@@ -435,6 +442,7 @@ class _CartScreenState extends State<CartScreen> {
 
   // ✅ Итоговая цена (динамическая)
   Widget _buildPriceSummary() {
+    final t = getTranslations();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -442,9 +450,9 @@ class _CartScreenState extends State<CartScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Price',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              Text(
+                t('price'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               Text(
                 '$_totalPrice₸', // ✅ Динамическая цена
@@ -456,9 +464,9 @@ class _CartScreenState extends State<CartScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Delivery',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              Text(
+                t('delivery'),
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
               const Text(
                 '0₸',
@@ -471,9 +479,9 @@ class _CartScreenState extends State<CartScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Total',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                t('total'),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               Text(
                 '$_totalPrice₸', // ✅ Динамическая сумма
@@ -488,6 +496,7 @@ class _CartScreenState extends State<CartScreen> {
 
   // ✅ Кнопка с проверкой пустой корзины
   Widget _buildBottomButton(BuildContext context) {
+    final t = getTranslations();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -527,7 +536,7 @@ class _CartScreenState extends State<CartScreen> {
             minimumSize: const Size(double.infinity, 50),
           ),
           child: Text(
-            _cartItems.isEmpty ? 'Cart is empty' : 'Go to checkout',
+            _cartItems.isEmpty ? t('cart_is_empty') : t('goToCheckout'),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
@@ -540,15 +549,16 @@ class _CartScreenState extends State<CartScreen> {
 
   // ✅ Диалог подтверждения очистки корзины
   void _showClearCartDialog() {
+    final t = getTranslations();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear cart?'),
-        content: const Text('Remove all items from your cart?'),
+        title: Text(t('clearCart')),
+        content: Text(t('removeAllItems')),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(t('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -560,7 +570,7 @@ class _CartScreenState extends State<CartScreen> {
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Clear'),
+            child: Text(t('clear')),
           ),
         ],
       ),

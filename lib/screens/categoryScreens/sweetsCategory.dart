@@ -3,29 +3,26 @@ import 'package:flutter/material.dart';
 import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
-import '../../services/userService.dart';
 import '../mainScreen.dart';
 import '../../widgets/flowerCatalogHeader.dart';
 import '../../models/product.dart';
 import '../../models/shop.dart';
 
-class FlowerCategoryScreen extends StatefulWidget {
-  const FlowerCategoryScreen({super.key});
+class SweetsCategoryScreen extends StatefulWidget {
+  const SweetsCategoryScreen({super.key});
 
   @override
-  State<FlowerCategoryScreen> createState() => _FlowerCategoryScreenState();
+  State<SweetsCategoryScreen> createState() => _SweetsCategoryScreenState();
 }
 
-class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with LanguageStateMixin{
-  String _selectedCategory = 'Flowers';
-  bool _showFlowerFilterModal = false;
+class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with LanguageStateMixin{
+  String _selectedCategory = 'Sweets';
+  bool _showSweetsFilterModal = false;
   int _currentFilterTab = 0;
-  Set<String> _favoriteShopIds = {};
 
   // Сервисы
   final ProductService _productService = ProductService();
   final ShopService _shopService = ShopService();
-  final UserService _userService = UserService();
 
   // Данные из Firestore
   List<Shop> _shops = [];
@@ -34,39 +31,80 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
   String? _error;
 
   // Фильтры
-  final List<Map<String, dynamic>> _includedFlowers = [
-    {'key': 'roses', 'selected': false},
-    {'key': 'tulips', 'selected': false},
-    {'key': 'peonies', 'selected': false},
-    {'key': 'peony_roses', 'selected': false},
-    {'key': 'chrysanthemums', 'selected': false},
-    {'key': 'alstroemerias', 'selected': false},
-    {'key': 'amaryllis', 'selected': false},
-    {'key': 'anemones', 'selected': false},
-    {'key': 'asters', 'selected': false},
-    {'key': 'cornflowers', 'selected': false},
-    {'key': 'carnations', 'selected': false},
+  final List<Map<String, dynamic>> _includedSweets = [
+    {'key': 'chocolate', 'selected': false},
+    {'key': 'macarons', 'selected': false},
+    {'key': 'cupcakes', 'selected': false},
+    {'key': 'cookies', 'selected': false},
+    {'key': 'candy', 'selected': false},
+    {'key': 'marshmallows', 'selected': false},
+    {'key': 'caramel', 'selected': false},
+    {'key': 'nuts', 'selected': false},
+    {'key': 'berries', 'selected': false},
+    {'key': 'honey', 'selected': false},
   ];
 
-  final List<Map<String, dynamic>> _excludedFlowers = [
-    {'key': 'roses', 'selected': false},
-    {'key': 'tulips', 'selected': false},
-    {'key': 'peonies', 'selected': false},
-    {'key': 'peony_roses', 'selected': false},
-    {'key': 'chrysanthemums', 'selected': false},
-    {'key': 'alstroemerias', 'selected': false},
-    {'key': 'amaryllis', 'selected': false},
-    {'key': 'anemones', 'selected': false},
-    {'key': 'asters', 'selected': false},
-    {'key': 'cornflowers', 'selected': false},
-    {'key': 'carnations', 'selected': false},
+  final List<Map<String, dynamic>> _excludedSweets = [
+    {'key': 'chocolate', 'selected': false},
+    {'key': 'macarons', 'selected': false},
+    {'key': 'cupcakes', 'selected': false},
+    {'key': 'cookies', 'selected': false},
+    {'key': 'candy', 'selected': false},
+    {'key': 'marshmallows', 'selected': false},
+    {'key': 'caramel', 'selected': false},
+    {'key': 'nuts', 'selected': false},
+    {'key': 'berries', 'selected': false},
+    {'key': 'honey', 'selected': false},
+  ];
+
+  // Store keys for localization
+  static const List<Map<String, String>> _sweetsCategories = [
+    {
+      'key': 'sweets',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'cakes',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'macarons',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'chocolate',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'cupcakes',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'cookies',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'candy',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+    {
+      'key': 'gift_boxes',
+      'image': 'assets/flowers/homeScreen/sweetsCategories.png',
+    },
+  ];
+
+  static const List<String> _sweetsFilters = [
+    'price_filter',
+    'free_delivery',
+    'sweets_type',
+    'delivery_time',
+    'gift_box',
   ];
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _loadFavoriteShops();
   }
 
   // ✅ Загрузка данных из Firestore
@@ -79,7 +117,8 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
 
     try {
       // Загружаем товары по категории
-      final products = await _productService.getProductsByCategory(_selectedCategory.toLowerCase());
+      final products = await _productService
+          .getProductsByCategory(_selectedCategory.toLowerCase());
 
       // Группируем товары по магазинам
       final shopIds = products.map((p) => p.shopId).toSet();
@@ -100,12 +139,8 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
         _error = t('error_loading_product');
         _isLoading = false;
       });
+      print('❌ Error loading data: $e');
     }
-  }
-
-  Future<void> _loadFavoriteShops() async {
-    final shops = await _userService.getFavoriteShops();
-    setState(() => _favoriteShopIds = shops.toSet());
   }
 
   // ✅ Перезагрузка при смене категории
@@ -117,14 +152,20 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
   }
 
   // ✅ Применение фильтров
-  void _applyFlowerFilters() {
+  void _applySweetsFilters() {
     final t = getTranslations();
-    final included = _includedFlowers.where((f) => f['selected'] == true).map((f) => t(f['key'])).toList();
-    final excluded = _excludedFlowers.where((f) => f['selected'] == true).map((f) => t(f['key'])).toList();
+    final included = _includedSweets
+        .where((sweet) => sweet['selected'] == true)
+        .map((sweet) => t(sweet['key']))
+        .toList();
+    final excluded = _excludedSweets
+        .where((sweet) => sweet['selected'] == true)
+        .map((sweet) => t(sweet['key']))
+        .toList();
 
     // 🔹 Здесь можно добавить фильтрацию на стороне клиента или сервера
     // Для простоты пока просто закрываем модалку
-    setState(() => _showFlowerFilterModal = false);
+    setState(() => _showSweetsFilterModal = false);
 
     print('🔍 Filters applied: included=$included, excluded=$excluded');
   }
@@ -132,6 +173,15 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
   @override
   Widget build(BuildContext context) {
     final t = getTranslations();
+    
+    // Map categories and filters for FlowerCatalogHeader
+    final localizedCategories = _sweetsCategories.map((c) => {
+      'name': t(c['key']!),
+      'image': c['image']!,
+    }).toList();
+    
+    final localizedFilters = _sweetsFilters.map((f) => t(f)).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -140,8 +190,8 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
             child: Column(
               children: [
                 FlowerCatalogHeader(
-                  title: _selectedCategory == 'Flowers'
-                      ? t('flowers_and_bouquets')
+                  title: _selectedCategory == 'Sweets'
+                      ? t('sweets_and_gifts')
                       : _selectedCategory,
                   onBackTap: () => Navigator.push(
                     context,
@@ -149,44 +199,48 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                   ),
                   onCategoryTap: _onCategoryChanged, // ✅ Обновлённый колбэк
                   onFlowerTypeTap: () {
-                    setState(() => _showFlowerFilterModal = true);
+                    setState(() => _showSweetsFilterModal = true);
                   },
                   selectedCategory: _selectedCategory,
+                  categories: localizedCategories,
+                  filters: localizedFilters,
                 ),
                 Expanded(
                   child: _isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : _error != null
-                      ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(_error!, style: const TextStyle(color: Colors.red)),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _loadData,
-                          child: Text(t('retry')),
-                        ),
-                      ],
-                    ),
-                  )
-                      : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 8),
-                        _buildShopsSection(),
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(_error!,
+                                      style:
+                                          const TextStyle(color: Colors.red)),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: _loadData,
+                                    child: Text(t('retry')),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : SingleChildScrollView(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 8),
+                                  _buildShopsSection(),
+                                  const SizedBox(height: 100),
+                                ],
+                              ),
+                            ),
                 ),
               ],
             ),
           ),
-          if (_showFlowerFilterModal) ...[
+          if (_showSweetsFilterModal) ...[
             GestureDetector(
-              onTap: () => setState(() => _showFlowerFilterModal = false),
+              onTap: () => setState(() => _showSweetsFilterModal = false),
               child: Container(color: Colors.black.withValues(alpha: 0.5)),
             ),
             Positioned(
@@ -199,7 +253,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                 ),
-                child: _buildFlowerFilterModal(),
+                child: _buildSweetsFilterModal(),
               ),
             ),
           ],
@@ -208,7 +262,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
     );
   }
 
-  Widget _buildFlowerFilterModal() {
+  Widget _buildSweetsFilterModal() {
     final t = getTranslations();
     return Column(
       children: [
@@ -218,13 +272,13 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
             children: [
               IconButton(
                 icon: const Icon(Icons.arrow_back),
-                onPressed: () => setState(() => _showFlowerFilterModal = false),
+                onPressed: () => setState(() => _showSweetsFilterModal = false),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
               const SizedBox(width: 16),
               Text(
-                t('included_flowers'),
+                t('included_sweets'),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ],
@@ -300,14 +354,13 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: _currentFilterTab == 0
-                ? _includedFlowers.length
-                : _excludedFlowers.length,
+                ? _includedSweets.length
+                : _excludedSweets.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
-              final flowers = _currentFilterTab == 0
-                  ? _includedFlowers
-                  : _excludedFlowers;
-              return _buildFlowerFilterItem(flowers[index]);
+              final sweets =
+                  _currentFilterTab == 0 ? _includedSweets : _excludedSweets;
+              return _buildSweetsFilterItem(sweets[index]);
             },
           ),
         ),
@@ -326,7 +379,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
           child: SafeArea(
             child: ElevatedButton(
               onPressed: () {
-                _applyFlowerFilters();
+                _applySweetsFilters();
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB07183),
@@ -347,18 +400,19 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
     );
   }
 
-  Widget _buildFlowerFilterItem(Map<String, dynamic> flower) {
+  Widget _buildSweetsFilterItem(Map<String, dynamic> sweet) {
     final t = getTranslations();
     return CheckboxListTile(
-      value: flower['selected'],
+      value: sweet['selected'],
       onChanged: (value) {
-        setState(() => flower['selected'] = value ?? false);
+        setState(() => sweet['selected'] = value ?? false);
       },
       title: Text(
-        t(flower['key']),
+        t(sweet['key']),
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
       ),
-      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+      checkboxShape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       activeColor: const Color(0xFFB07183),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
     );
@@ -373,7 +427,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
           padding: const EdgeInsets.all(40),
           child: Column(
             children: [
-              Icon(Icons.local_florist, size: 80, color: Colors.grey[300]),
+              Icon(Icons.cake_outlined, size: 80, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
                 '${t('no_products_category')} $_selectedCategory',
@@ -386,24 +440,19 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
       );
     }
 
-    if (_shops.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     // Группируем товары по магазинам
     final shopsWithProducts = <Shop, List<Product>>{};
     for (var product in _products) {
-      final shop = _shops.firstWhere(
-            (s) => s.id == product.shopId,
-        orElse: () => Shop(         // ← возвращаем заглушку вместо краша
-          id: '',
-          name: t('unknown'),
-          rating: 0,
-          reviews: 0,
-          image: '',
-          address: '',
-          phone: '',
-        ),
+      final shop = _shops.firstWhere((s) => s.id == product.shopId,
+          orElse: () => Shop(         // ← возвращаем заглушку вместо краша
+            id: '',
+            name: t('unknown'),
+            rating: 0,
+            reviews: 0,
+            image: '',
+            address: '',
+            phone: '',
+          ),
       );
       if (!shopsWithProducts.containsKey(shop)) {
         shopsWithProducts[shop] = [];
@@ -423,9 +472,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
           const SizedBox(height: 12),
           // Список магазинов
           ...shopsWithProducts.entries.map((entry) => Padding(
-            padding: const EdgeInsets.only(bottom: 20),
-            child: _buildShopCard(entry.key, entry.value),
-          )),
+                padding: const EdgeInsets.only(bottom: 20),
+                child: _buildShopCard(entry.key, entry.value),
+              )),
         ],
       ),
     );
@@ -481,30 +530,43 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                         // Первый ряд
                         Row(
                           children: [
-                            Expanded(child: _buildProductGridItem(displayProducts[0])),
+                            Expanded(
+                                child:
+                                    _buildProductGridItem(displayProducts[0])),
                             if (displayProducts.length > 1) ...[
                               const SizedBox(width: 8),
-                              Expanded(child: _buildProductGridItem(displayProducts[1])),
+                              Expanded(
+                                  child: _buildProductGridItem(
+                                      displayProducts[1])),
                             ],
                             if (displayProducts.length > 2) ...[
                               const SizedBox(width: 8),
-                              Expanded(child: _buildProductGridItem(displayProducts[2])),
+                              Expanded(
+                                  child: _buildProductGridItem(
+                                      displayProducts[2])),
                             ],
                           ],
                         ),
-                        if (displayProducts.length > 3) const SizedBox(height: 8),
+                        if (displayProducts.length > 3)
+                          const SizedBox(height: 8),
                         // Второй ряд
                         if (displayProducts.length > 3)
                           Row(
                             children: [
-                              Expanded(child: _buildProductGridItem(displayProducts[3])),
+                              Expanded(
+                                  child: _buildProductGridItem(
+                                      displayProducts[3])),
                               if (displayProducts.length > 4) ...[
                                 const SizedBox(width: 8),
-                                Expanded(child: _buildProductGridItem(displayProducts[4])),
+                                Expanded(
+                                    child: _buildProductGridItem(
+                                        displayProducts[4])),
                               ],
                               if (displayProducts.length > 5) ...[
                                 const SizedBox(width: 8),
-                                Expanded(child: _buildProductGridItem(displayProducts[5])),
+                                Expanded(
+                                    child: _buildProductGridItem(
+                                        displayProducts[5])),
                               ],
                             ],
                           ),
@@ -524,17 +586,20 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                         children: [
                           Text(
                             shop.name,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.w700),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               '${t('today')}, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
@@ -553,18 +618,21 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                           const SizedBox(width: 4),
                           Text(
                             '${shop.rating}',
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                           Text(
                             ' (${shop.reviews})',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            style: TextStyle(
+                                color: Colors.grey[600], fontSize: 12),
                           ),
                           const Spacer(),
                           const Icon(Icons.local_shipping, size: 18),
                           const SizedBox(width: 4),
                           Text(
                             shop.freeDelivery ? t('free_delivery') : t('paid'),
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
                           ),
                         ],
                       ),
@@ -579,15 +647,13 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
               top: 20,
               right: 20,
               child: GestureDetector(
-                onTap: () async {
-                  final isFav = _favoriteShopIds.contains(shop.id);
-                  if (isFav) {
-                    await _userService.removeShopFromFavorites(shop.id);
-                    setState(() => _favoriteShopIds.remove(shop.id));
-                  } else {
-                    await _userService.addShopToFavorites(shop.id);
-                    setState(() => _favoriteShopIds.add(shop.id));
-                  }
+                onTap: () {
+                  // 🔹 Для магазинов нужно отдельное поле в User модели
+                  // Пока показываем заглушку
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Shop favorites coming soon!')),
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.all(8),
@@ -602,10 +668,10 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                       ),
                     ],
                   ),
-                  child: Icon(
-                    _favoriteShopIds.contains(shop.id) ? Icons.favorite : Icons.favorite_border,
+                  child: const Icon(
+                    Icons.favorite_border,
                     size: 20,
-                    color: _favoriteShopIds.contains(shop.id) ? const Color(0xFFB07183) : Colors.grey,
+                    color: Colors.grey,
                   ),
                 ),
               ),
@@ -632,22 +698,24 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
               borderRadius: BorderRadius.circular(12),
               child: product.images.isNotEmpty
                   ? Image.network(
-                product.images.first,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.local_florist, color: Colors.grey, size: 40),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  );
-                },
-              )
-                  : const Icon(Icons.local_florist, color: Colors.grey, size: 40),
+                      product.images.first,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.grey[300],
+                          child: const Icon(Icons.cake_outlined,
+                              color: Colors.grey, size: 40),
+                        );
+                      },
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        );
+                      },
+                    )
+                  : const Icon(Icons.cake_outlined,
+                      color: Colors.grey, size: 40),
             ),
 
             // Цена

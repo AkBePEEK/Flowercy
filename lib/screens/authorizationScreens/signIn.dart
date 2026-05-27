@@ -2,9 +2,7 @@ import 'package:flowery_app/screens/authorizationScreens/signUp.dart';
 import 'package:flutter/material.dart';
 // ✅ Firebase импорты
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:go_router/go_router.dart';
-
-import '../../router/app_router.dart';
+import '../../services/language_service.dart';
 
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
@@ -13,7 +11,7 @@ class SignInScreen extends StatefulWidget {
   State<SignInScreen> createState() => _SignInScreenState();
 }
 
-class _SignInScreenState extends State<SignInScreen> {
+class _SignInScreenState extends State<SignInScreen> with LanguageStateMixin {
   // ✅ Контроллеры для полей
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -37,68 +35,57 @@ class _SignInScreenState extends State<SignInScreen> {
 
   // ✅ Обработка входа
   Future<void> _handleSignIn() async {
-    // Скрыть предыдущие ошибки
-    setState(() {
-      _errorMessage = null;
-    });
+    final t = getTranslations();
+    setState(() => _errorMessage = null);
 
-    // 1. Проверка: заполнены ли поля
     if (_emailController.text.trim().isEmpty ||
         _passwordController.text.trim().isEmpty) {
       setState(() {
-        _errorMessage = 'Please fill in all fields';
+        _errorMessage = t('fill_all_fields');
       });
-      _showError('Please fill in all fields');
+      _showError(t('fill_all_fields'));
       return;
     }
 
-    // 2. Проверка: валидный ли email
     if (!_isValidEmail(_emailController.text.trim())) {
       setState(() {
-        _errorMessage = 'Please enter a valid email address';
+        _errorMessage = t('enter_valid_email');
       });
-      _showError('Please enter a valid email address');
+      _showError(t('enter_valid_email'));
       return;
     }
 
-    // 3. Показать индикатор загрузки
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // ✅ Вход через Firebase Auth
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-
-      // ✅ Успешный вход — переход на главный экран
-      if (mounted) {
-        context.goNamed(AppRoute.main);
-      }
-
     } on FirebaseAuthException catch (e) {
       // ✅ Обработка ошибок Firebase
       String message;
       switch (e.code) {
         case 'user-not-found':
-          message = 'User not found';
+          message = t('user_not_found');
           break;
         case 'wrong-password':
-          message = 'Incorrect password';
+          message = t('wrong_password');
+          break;
+        case 'invalid-credential':
+          message = t('invalid_credential');
           break;
         case 'invalid-email':
-          message = 'Please enter a valid email address';
+          message = t('invalid_email');
           break;
         case 'user-disabled':
-          message = 'This account has been disabled';
+          message = t('user_disabled');
           break;
         case 'too-many-requests':
-          message = 'Too many attempts. Try again later';
+          message = t('too_many_requests');
           break;
         default:
-          message = 'Something went wrong. Please try again.';
+          message = '${t('general_error')} (${e.code})';
       }
 
       if (mounted) {
@@ -108,16 +95,13 @@ class _SignInScreenState extends State<SignInScreen> {
     } catch (e) {
       // ✅ Сетевые или другие ошибки
       if (mounted) {
-        setState(() => _errorMessage = 'Network error. Check your connection.');
-        _showError('Network error. Check your connection.');
+        setState(() => _errorMessage = t('network_error'));
+        _showError(t('network_error'));
       }
     } finally {
-      // Скрыть индикатор загрузки
-      if (mounted) {
-        setState(() => _isLoading = false);
-        }
-        }
-        }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   // ✅ Показать ошибку в SnackBar
   void _showError(String message) {
@@ -133,6 +117,7 @@ class _SignInScreenState extends State<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -157,10 +142,10 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: 32),
 
               // Sign In Title
-              const Center(
+              Center(
                 child: Text(
-                  'Sign In',
-                  style: TextStyle(
+                  t('signIn'),
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -198,9 +183,9 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
 
               // Email Field
-              const Text(
-                'Email',
-                style: TextStyle(
+              Text(
+                t('email'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -222,7 +207,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   // ✅ Добавить контроллер
                   controller: _emailController,
                   decoration: InputDecoration(
-                    hintText: 'Enter your email',
+                    hintText: t('enter_email_hint'),
                     hintStyle: TextStyle(color: Colors.grey[500]),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -244,9 +229,9 @@ class _SignInScreenState extends State<SignInScreen> {
               const SizedBox(height: 24),
 
               // Password Field
-              const Text(
-                'Password',
-                style: TextStyle(
+              Text(
+                t('password'),
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: Colors.black87,
@@ -267,7 +252,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   // ✅ Добавить контроллер
                   controller: _passwordController,
                   decoration: InputDecoration(
-                    hintText: 'Enter your password',
+                    hintText: t('enter_password_hint'),
                     hintStyle: TextStyle(color: Colors.grey[500]),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(
@@ -318,7 +303,7 @@ class _SignInScreenState extends State<SignInScreen> {
                   ),
                   label: Text(
                     // ✅ Текст при загрузке
-                    _isLoading ? 'Signing in...' : 'Sign In',
+                    _isLoading ? t('signing_in_btn') : t('signIn'),
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
@@ -335,7 +320,7 @@ class _SignInScreenState extends State<SignInScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    "Don't have an account? ",
+                    "${t('noAccount')} ",
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,
@@ -348,9 +333,9 @@ class _SignInScreenState extends State<SignInScreen> {
                         MaterialPageRoute(builder: (context) => const SignUpScreen()),
                       );
                     },
-                    child: const Text(
-                      'Sign up',
-                      style: TextStyle(
+                    child: Text(
+                      t('signUp'),
+                      style: const TextStyle(
                         color: Colors.black87,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

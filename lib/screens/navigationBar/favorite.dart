@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/product.dart';
 import '../../models/shop.dart';
+import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../../services/userService.dart';
@@ -13,7 +14,7 @@ class FavoritesScreen extends StatefulWidget {
   State<FavoritesScreen> createState() => _FavoritesScreenState();
 }
 
-class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProviderStateMixin {
+class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProviderStateMixin, LanguageStateMixin {
   late TabController _tabController;
 
   // ✅ Сервисы
@@ -44,6 +45,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // ✅ Загрузка избранного из Firestore
   Future<void> _loadFavorites() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -73,7 +75,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load favorites';
+        _error = t('error_load_favorites');
         _isLoading = false;
       });
     }
@@ -81,13 +83,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // ✅ Удаление из избранного
   Future<void> _removeFromFavorites(String productId, String name) async {
+    final t = getTranslations();
     await _userService.removeFromFavorites(productId);
     _loadFavorites(); // Перезагрузить список
 
     // Показать подтверждение
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('$name removed from favorites'),
+        content: Text('$name ${t('removed_from_favorites')}'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -95,14 +98,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Favorites',
-          style: TextStyle(
+        title: Text(
+          t.favorites,
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -151,7 +155,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                                 : null,
                           ),
                           child: Text(
-                            'Bouquets',
+                            t('bouquets'),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
@@ -187,7 +191,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                                 : null,
                           ),
                           child: Text(
-                            'Markets',
+                            t('markets'),
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
@@ -218,7 +222,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadFavorites,
-                    child: const Text('Retry'),
+                    child: Text(t('retry')),
                   ),
                 ],
               ),
@@ -240,6 +244,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // Вкладка с букетами
   Widget _buildBouquetsTab() {
+    final t = getTranslations();
     return _favoriteProducts.isEmpty
         ? Center(
       child: Column(
@@ -248,12 +253,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
           Icon(Icons.favorite_border, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'No favorite bouquets yet',
+            t('no_favorite_bouquets'),
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap the heart icon on any bouquet to save it',
+            t('no_favorite_bouquets_hint'),
             style: TextStyle(fontSize: 13, color: Colors.grey[400]),
             textAlign: TextAlign.center,
           ),
@@ -351,6 +356,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // Вкладка с магазинами
   Widget _buildMarketsTab() {
+    final t = getTranslations();
     return _favoriteShops.isEmpty
         ? Center(
       child: Column(
@@ -359,7 +365,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
           Icon(Icons.store_outlined, size: 60, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'No favorite markets yet',
+            t('no_favorite_markets'),
             style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
         ],
@@ -378,6 +384,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // Элемент магазина (из модели Shop)
   Widget _buildMarketItem(Shop shop) {
+    final t = getTranslations();
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -430,13 +437,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                   children: [
                     const Icon(Icons.star, color: Colors.amber, size: 16),
                     const SizedBox(width: 4),
-                    Text('${shop.rating}/5 rating', style: const TextStyle(fontSize: 13)),
+                    Text('${shop.rating}/5 ${t('rating')}', style: const TextStyle(fontSize: 13)),
                     const SizedBox(width: 8),
                     const Text('•', style: TextStyle(fontSize: 12)),
                     const SizedBox(width: 8),
                     const Icon(Icons.chat_bubble_outline, size: 14),
                     const SizedBox(width: 4),
-                    Text('${shop.reviews} review', style: const TextStyle(fontSize: 13)),
+                    Text('${shop.reviews} ${t('review')}', style: const TextStyle(fontSize: 13)),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -464,7 +471,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(
-                          'Free delivery',
+                          t('free_delivery'),
                           style: TextStyle(fontSize: 11, color: Colors.pink[700], fontWeight: FontWeight.w500),
                         ),
                       ),
@@ -480,7 +487,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
               await _userService.removeShopFromFavorites(shop.id);
               _loadFavorites();
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${shop.name} removed from favorites')),
+                SnackBar(content: Text('${shop.name} ${t('removed_from_favorites')}')),
               );
             },
             child: const Icon(Icons.favorite, color: Color(0xFFB07183), size: 24),

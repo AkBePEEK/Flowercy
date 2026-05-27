@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/address.dart';
+import '../services/language_service.dart';
 import '../services/userService.dart';
 import 'addressFormDialog.dart';
 
@@ -10,7 +11,7 @@ class SavedAddressesScreen extends StatefulWidget {
   State<SavedAddressesScreen> createState() => _SavedAddressesScreenState();
 }
 
-class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
+class _SavedAddressesScreenState extends State<SavedAddressesScreen> with LanguageStateMixin{
   final UserService _userService = UserService();
 
   // ✅ Состояния
@@ -27,6 +28,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   // ✅ Загрузка адресов из Firestore
   Future<void> _loadAddresses() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -45,7 +47,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load addresses';
+        _error = t('error_load_addresses');
         _isLoading = false;
       });
       print('❌ Error loading addresses: $e');
@@ -54,6 +56,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   // ✅ Выбор адреса
   Future<void> _selectAddress(String addressId) async {
+    final t = getTranslations();
     // Снимаем isDefault со всех адресов
     for (var addr in _addresses) {
       if (addr.id != addressId && addr.isDefault) {
@@ -69,23 +72,24 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Address selected'), duration: Duration(seconds: 2)),
+      SnackBar(content: Text(t('address_selected')), duration: const Duration(seconds: 2)),
     );
   }
 
   // ✅ Удаление адреса
   Future<void> _removeAddress(String addressId, String addressName) async {
+    final t = getTranslations();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete address?'),
-        content: Text('Are you sure you want to delete "$addressName"?'),
+        title: Text(t('deleteAddress')),
+        content: Text('${t('delete_address_confirm')} "$addressName"?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text('Delete'),
+            child: Text(t('delete')),
           ),
         ],
       ),
@@ -96,11 +100,11 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
         await _userService.removeAddress(addressId);
         _loadAddresses(); // Перезагрузить список
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Address deleted'), backgroundColor: Colors.green),
+          SnackBar(content: Text(t('address_deleted')), backgroundColor: Colors.green),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to delete address'), backgroundColor: Colors.red),
+          SnackBar(content: Text(t('error_delete_address')), backgroundColor: Colors.red),
         );
       }
     }
@@ -108,6 +112,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   // ✅ Показать диалог добавления/редактирования
   Future<void> _showAddressDialog({Address? existingAddress}) async {
+    final t = getTranslations();
     final streetController = TextEditingController(text: existingAddress?.street);
     final apartmentController = TextEditingController(text: existingAddress?.apartment);
     final cityController = TextEditingController(text: existingAddress?.city ?? 'Astana');
@@ -132,7 +137,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
             if (mounted) Navigator.pop(context);
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Failed to save: $e'), backgroundColor: Colors.red),
+              SnackBar(content: Text('${t('error_save_address')}: $e'), backgroundColor: Colors.red),
             );
           }
         },
@@ -142,6 +147,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -151,9 +157,9 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Saved addresses',
-          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
+        title: Text(
+          t('savedAddressesTitle'),
+          style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
@@ -169,7 +175,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 children: [
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _loadAddresses, child: const Text('Retry')),
+                  ElevatedButton(onPressed: _loadAddresses, child: Text(t('retry'))),
                 ],
               ),
             )
@@ -206,7 +212,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Add address', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                  child: Text(t('addAddress'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               ),
             ),
@@ -218,6 +224,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   // ✅ Пустой экран
   Widget _buildEmptyState() {
+    final t = getTranslations();
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(40),
@@ -227,12 +234,12 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
             Icon(Icons.location_on_outlined, size: 80, color: Colors.grey[300]),
             const SizedBox(height: 16),
             Text(
-              'No saved addresses yet',
+              t('noAddresses'),
               style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 8),
             Text(
-              'Add your first address for faster checkout',
+              t('no_addresses_hint'),
               style: TextStyle(fontSize: 13, color: Colors.grey[400]),
               textAlign: TextAlign.center,
             ),
@@ -244,7 +251,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
 
   // ✅ Элемент адреса
   Widget _buildAddressTile(Address address) {
-    final isSelected = _selectedAddressId == address.id;
+    final t = getTranslations();
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -277,7 +284,7 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
                 color: const Color(0xFFB07183).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text('Default', style: TextStyle(fontSize: 11, color: Color(0xFFB07183), fontWeight: FontWeight.w500)),
+              child: Text(t('defaultAddress'), style: const TextStyle(fontSize: 11, color: Color(0xFFB07183), fontWeight: FontWeight.w500)),
             ),
           const SizedBox(width: 8),
           PopupMenuButton<String>(
@@ -290,8 +297,8 @@ class _SavedAddressesScreenState extends State<SavedAddressesScreen> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'edit', child: Text('Edit')),
-              const PopupMenuItem(value: 'delete', child: Text('Delete', style: TextStyle(color: Colors.red))),
+              PopupMenuItem(value: 'edit', child: Text(t('edit'))),
+              PopupMenuItem(value: 'delete', child: Text(t('delete'), style: const TextStyle(color: Colors.red))),
             ],
           ),
         ],

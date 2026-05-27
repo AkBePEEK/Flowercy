@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flowery_app/screens/categoryScreens/shopDetail.dart';
 import '../../models/cartItem.dart';
+import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../../models/product.dart';
@@ -19,7 +20,7 @@ class ProductDetailScreen extends StatefulWidget {
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
 }
 
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
+class _ProductDetailScreenState extends State<ProductDetailScreen> with LanguageStateMixin {
   final ProductService _productService = ProductService();
   final ShopService _shopService = ShopService();
   final UserService _userService = UserService();
@@ -44,6 +45,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   // ✅ Загрузка данных продукта и магазина
   Future<void> _loadData() async {
+    final t = getTranslations();
     setState(() {
       _isLoading = true;
       _error = null;
@@ -53,7 +55,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       // 1. Загружаем продукт
       final product = await _productService.getProductById(widget.productId);
       if (product == null) {
-        throw Exception('Product not found');
+        throw Exception(t('product_not_found'));
       }
 
       // 2. Загружаем магазин этого продукта
@@ -66,7 +68,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load product';
+        _error = t('error_loading_product');
         _isLoading = false;
       });
       print('❌ Error loading product: $e');
@@ -81,6 +83,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   // ✅ Переключение избранного
   Future<void> _toggleFavorite() async {
+    final t = getTranslations();
     try {
       if (_isFavorite) {
         await _userService.removeFromFavorites(widget.productId);
@@ -92,8 +95,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_isFavorite
-              ? 'Added to favorites ❤️'
-              : 'Removed from favorites'),
+              ? '${t('added_to_favorites')} ❤️'
+              : t('removed_from_favorites_msg')),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -104,6 +107,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   // ✅ Добавление в корзину
   Future<void> _addToCart() async {
+    final t = getTranslations();
     if (_product == null) return;
 
     try {
@@ -118,15 +122,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added $_quantity item(s) to cart'),
+          content: Text('${t('added_to_cart_msg')} ($_quantity)'),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to add to cart'),
+        SnackBar(
+          content: Text(t('failed_to_add_to_cart')),
           backgroundColor: Colors.red,
         ),
       );
@@ -135,6 +139,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: _isLoading
@@ -148,13 +153,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadData,
-              child: const Text('Retry'),
+              child: Text(t('retry')),
             ),
           ],
         ),
       )
           : _product == null
-          ? const Center(child: Text('Product not found'))
+          ? Center(child: Text(t('product_not_found')))
           : Stack(
         children: [
           SingleChildScrollView(
@@ -273,19 +278,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(height: 16),
 
                       // Информация о доставке
-                      _buildInfoRow(Icons.local_shipping, 'Free delivery in 2 hours'),
+                      _buildInfoRow(Icons.local_shipping, t('free_delivery_in_hours')),
                       const SizedBox(height: 8),
-                      _buildInfoRow(Icons.favorite, '${_product!.reviews} people added to favorites'),
+                      _buildInfoRow(Icons.favorite, '${_product!.reviews} ${t('people_add_to_order')}'), // Reuse people key
                       if (_product!.inStock) ...[
                         const SizedBox(height: 8),
-                        _buildInfoRow(Icons.verified_user, 'Verified availability', color: Colors.green),
+                        _buildInfoRow(Icons.verified_user, t('verified_availability'), color: Colors.green),
                       ],
 
                       const SizedBox(height: 24),
 
                       // Состав (если есть в модели)
                       if (_product!.description.isNotEmpty) ...[
-                        const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                        Text(t('description'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                         const SizedBox(height: 12),
                         Text(
                           _product!.description,
@@ -295,13 +300,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ],
 
                       // Размеры
-                      const Text('Size', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                      Text(t('size'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          _buildSizeInfo('Width 55 cm'),
+                          _buildSizeInfo('${t('width')} 55 cm'),
                           const SizedBox(width: 16),
-                          _buildSizeInfo('Height 60 cm'),
+                          _buildSizeInfo('${t('height')} 60 cm'),
                         ],
                       ),
 
@@ -334,11 +339,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     );
   }
 
-  // ... (остальные методы _buildCircleButton, _buildSizeBadge, _buildInfoRow,
-  // _buildSizeInfo, _buildShopSection, _buildProtectionSection, _buildBottomBar
-  // остаются практически без изменений, только используют _product! и _shop! вместо заглушек)
-
   Widget _buildShopSection() {
+    final t = getTranslations();
     if (_shop == null) return const SizedBox.shrink();
 
     return Column(
@@ -379,9 +381,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       );
                     },
-                    child: const Text(
-                      'Go to store',
-                      style: TextStyle(fontSize: 13, color: Color(0xFFB07183), fontWeight: FontWeight.w500),
+                    child: Text(
+                      t('go_to_store'),
+                      style: const TextStyle(fontSize: 13, color: Color(0xFFB07183), fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -403,9 +405,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               side: const BorderSide(color: Color(0xFFB07183)),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text(
-              'Contact shop',
-              style: TextStyle(color: Color(0xFFB07183), fontSize: 15, fontWeight: FontWeight.w600),
+            child: Text(
+              t('contact_shop'),
+              style: const TextStyle(color: Color(0xFFB07183), fontSize: 15, fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -417,14 +419,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             const Icon(Icons.star, size: 16, color: Colors.amber),
             const SizedBox(width: 4),
             Text(
-              '${_shop!.rating}/5 rating',
+              '${_shop!.rating}/5 ${t('rating')}',
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
             const SizedBox(width: 16),
             const Icon(Icons.chat_bubble_outline, size: 16),
             const SizedBox(width: 4),
             Text(
-              '${_shop!.reviews} review',
+              '${_shop!.reviews} ${t('review')}',
               style: const TextStyle(fontSize: 13),
             ),
           ],
@@ -434,6 +436,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildBottomBar() {
+    final t = getTranslations();
     return Positioned(
       bottom: 0,
       left: 0,
@@ -492,7 +495,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                      'Add to cart   ${_product!.price * _quantity} ₸',
+                      '${t('add_to_cart')}   ${_product!.price * _quantity} ₸',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -565,24 +568,25 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   Widget _buildProtectionSection() {
+    final t = getTranslations();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildProtectionItem(Icons.shield_outlined, 'Buyer protection',
-            'If the item doesn\'t match the description, you can return it at the shop\'s expense or receive a full refund.'),
+        _buildProtectionItem(Icons.shield_outlined, t('buyer_protection'),
+            t('buyer_protection_desc')),
         const SizedBox(height: 24),
-        _buildProtectionItem(Icons.cancel_outlined, 'Cancellation policy',
-            'Free cancellation is available until delivery starts. You will receive a full refund.'),
+        _buildProtectionItem(Icons.cancel_outlined, t('cancellation_policy'),
+            t('cancellation_policy_desc')),
         const SizedBox(height: 24),
         GestureDetector(
           onTap: () {},
-          child: const Row(
+          child: Row(
             children: [
-              Icon(Icons.flag_outlined, size: 16, color: Colors.grey),
-              SizedBox(width: 8),
+              const Icon(Icons.flag_outlined, size: 16, color: Colors.grey),
+              const SizedBox(width: 8),
               Text(
-                'Report this listing',
-                style: TextStyle(fontSize: 13, color: Colors.grey, decoration: TextDecoration.underline),
+                t('report_listing'),
+                style: const TextStyle(fontSize: 13, color: Colors.grey, decoration: TextDecoration.underline),
               ),
             ],
           ),

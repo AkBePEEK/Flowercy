@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter/foundation.dart';
 import '../../router/app_router.dart';
 import '../../services/auth_service.dart';
+import '../../services/language_service.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -22,9 +24,9 @@ class SignUpScreen extends StatelessWidget {
               const SizedBox(height: 32),
 
               // Welcome Text
-              const Text(
-                'Welcome to Flowery',
-                style: TextStyle(
+              Text(
+                t('welcome_to_flowery'),
+                style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
@@ -33,9 +35,9 @@ class SignUpScreen extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              const Text(
-                'Find your dream flowers!',
-                style: TextStyle(
+              Text(
+                t('find_dream_flowers'),
+                style: const TextStyle(
                   fontSize: 16,
                   color: Colors.black54,
                 ),
@@ -52,7 +54,7 @@ class SignUpScreen extends StatelessWidget {
                     if (defaultTargetPlatform == TargetPlatform.iOS) ...[
                       _buildSocialButton(
                         icon: Icons.apple,
-                        text: 'Sign Up with Apple',
+                        text: t('sign_up_apple'),
                         onPressed: () async {
                           final result = await AuthService().signInWithApple();
                           if (result != null && context.mounted) {
@@ -67,7 +69,7 @@ class SignUpScreen extends StatelessWidget {
                     // Google Sign Up Button
                     _buildSocialButton(
                       icon: FontAwesomeIcons.google,
-                      text: 'Sign Up with Google',
+                      text: t('sign_up_google'),
                       onPressed: () async {
                         final result = await AuthService().signInWithGoogle();
                         if (result != null && context.mounted) {
@@ -86,7 +88,7 @@ class SignUpScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'or',
+                            t('or'),
                             style: TextStyle(color: Colors.grey[400]),
                           ),
                         ),
@@ -114,9 +116,9 @@ class SignUpScreen extends StatelessWidget {
                           color: Colors.white,
                           size: 24,
                         ),
-                        label: const Text(
-                          'Sign Up with Email',
-                          style: TextStyle(
+                        label: Text(
+                          t('sign_up_email'),
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
@@ -132,7 +134,7 @@ class SignUpScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Already have an account? ',
+                          '${t('haveAccount')} ',
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 14,
@@ -144,9 +146,9 @@ class SignUpScreen extends StatelessWidget {
                             AuthService().signOut();
                             context.goNamed(AppRoute.signIn);  // ✅ Автоматически на вход
                           },
-                          child: const Text(
-                            'Sign in',
-                            style: TextStyle(
+                          child: Text(
+                            t('signIn'),
+                            style: const TextStyle(
                               color: Colors.black87,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
