@@ -16,7 +16,7 @@ class SweetsCategoryScreen extends StatefulWidget {
 }
 
 class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with LanguageStateMixin{
-  String _selectedCategory = 'Sweets';
+  String _selectedCategory = 'sweets';
   bool _showSweetsFilterModal = false;
   int _currentFilterTab = 0;
 
@@ -144,9 +144,9 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
   }
 
   // ✅ Перезагрузка при смене категории
-  void _onCategoryChanged(String category) {
+  void _onCategoryChanged(String categoryKey) {
     setState(() {
-      _selectedCategory = category;
+      _selectedCategory = categoryKey.toLowerCase();
     });
     _loadData();
   }
@@ -174,13 +174,13 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
   Widget build(BuildContext context) {
     final t = getTranslations();
     
-    // Map categories and filters for FlowerCatalogHeader
-    final localizedCategories = _sweetsCategories.map((c) => {
-      'name': t(c['key']!),
+    // Pass keys directly to header
+    final headerCategories = _sweetsCategories.map((c) => {
+      'key': c['key']!,
       'image': c['image']!,
     }).toList();
     
-    final localizedFilters = _sweetsFilters.map((f) => t(f)).toList();
+    final headerFilters = _sweetsFilters;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -190,9 +190,9 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
             child: Column(
               children: [
                 FlowerCatalogHeader(
-                  title: _selectedCategory == 'Sweets'
+                  title: _selectedCategory == 'sweets'
                       ? t('sweets_and_gifts')
-                      : _selectedCategory,
+                      : t(_selectedCategory),
                   onBackTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const MainScreen()),
@@ -202,8 +202,8 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
                     setState(() => _showSweetsFilterModal = true);
                   },
                   selectedCategory: _selectedCategory,
-                  categories: localizedCategories,
-                  filters: localizedFilters,
+                  categories: headerCategories,
+                  filters: headerFilters,
                 ),
                 Expanded(
                   child: _isLoading
@@ -430,7 +430,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
               Icon(Icons.cake_outlined, size: 80, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                '${t('no_products_category')} $_selectedCategory',
+                '${t('no_products_category')} ${t(_selectedCategory)}',
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
@@ -607,7 +607,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
                       const SizedBox(height: 6),
                       // Категория
                       Text(
-                        '${_selectedCategory.toUpperCase()} | ASTANA | DELIVERY',
+                        '${t(_selectedCategory).toUpperCase()} | ASTANA | DELIVERY',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 12),

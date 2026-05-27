@@ -17,7 +17,7 @@ class FlowerCategoryScreen extends StatefulWidget {
 }
 
 class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with LanguageStateMixin{
-  String _selectedCategory = 'Flowers';
+  String _selectedCategory = 'flowers';
   bool _showFlowerFilterModal = false;
   int _currentFilterTab = 0;
   Set<String> _favoriteShopIds = {};
@@ -109,24 +109,18 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
   }
 
   // ✅ Перезагрузка при смене категории
-  void _onCategoryChanged(String category) {
+  void _onCategoryChanged(String categoryKey) {
     setState(() {
-      _selectedCategory = category;
+      _selectedCategory = categoryKey.toLowerCase();
     });
     _loadData();
   }
 
   // ✅ Применение фильтров
   void _applyFlowerFilters() {
-    final t = getTranslations();
-    final included = _includedFlowers.where((f) => f['selected'] == true).map((f) => t(f['key'])).toList();
-    final excluded = _excludedFlowers.where((f) => f['selected'] == true).map((f) => t(f['key'])).toList();
-
     // 🔹 Здесь можно добавить фильтрацию на стороне клиента или сервера
     // Для простоты пока просто закрываем модалку
     setState(() => _showFlowerFilterModal = false);
-
-    print('🔍 Filters applied: included=$included, excluded=$excluded');
   }
 
   @override
@@ -140,9 +134,9 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
             child: Column(
               children: [
                 FlowerCatalogHeader(
-                  title: _selectedCategory == 'Flowers'
+                  title: _selectedCategory == 'flowers'
                       ? t('flowers_and_bouquets')
-                      : _selectedCategory,
+                      : t(_selectedCategory.toLowerCase()),
                   onBackTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(builder: (context) => const MainScreen()),
@@ -376,7 +370,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
               Icon(Icons.local_florist, size: 80, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                '${t('no_products_category')} $_selectedCategory',
+                '${t('no_products_category')} ${t(_selectedCategory)}',
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
@@ -542,7 +536,7 @@ class _FlowerCategoryScreenState extends State<FlowerCategoryScreen> with Langua
                       const SizedBox(height: 6),
                       // Категория
                       Text(
-                        '${_selectedCategory.toUpperCase()} | ASTANA | DELIVERY',
+                        '${t(_selectedCategory).toUpperCase()} | ASTANA | DELIVERY',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 12),
