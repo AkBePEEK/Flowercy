@@ -4,9 +4,22 @@ class SeedService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> seedAll() async {
+    print('🧹 Clearing existing data...');
+    await _clearCollection('shops');
+    await _clearCollection('products');
+    
+    print('🌱 Seeding new data...');
     await _seedShops();
     await _seedProducts();
     print('✅ Seed complete!');
+  }
+
+  Future<void> _clearCollection(String collectionName) async {
+    final snapshot = await _firestore.collection(collectionName).get();
+    for (final doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+    print('🗑️ Collection $collectionName cleared');
   }
 
   Future<void> _seedShops() async {
@@ -142,6 +155,20 @@ class SeedService {
         'category': 'sweets',
         'rating': 4.8,
         'reviews': 63,
+        'discount': null,
+        'freeDelivery': true,
+        'inStock': true,
+      },
+      {
+        'name': 'Макаруны ассорти',
+        'price': 8500,
+        'currency': '₸',
+        'description': 'Набор из 12 свежих макарунов с разными вкусами',
+        'images': ['https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400'],
+        'shopId': shopIds[1],
+        'category': 'sweets',
+        'rating': 4.7,
+        'reviews': 45,
         'discount': null,
         'freeDelivery': true,
         'inStock': true,

@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import '../../models/address.dart';
 import '../../models/cartItem.dart';
 import '../../models/order.dart';
 import '../../models/orderItem.dart';
@@ -7,6 +8,7 @@ import '../../services/language_service.dart';
 import '../../services/notificationService.dart';
 import '../../services/orderService.dart';
 import '../../services/userService.dart';
+import '../savedAddresses.dart';
 import 'courierComment.dart';
 import 'orderInProgress.dart';
 
@@ -25,10 +27,89 @@ class OrderDetailsScreen extends StatefulWidget {
 }
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageStateMixin {
-  // ✅ Переменные для выбора
+  // ✅ Состояния выбора
   int _selectedDeliveryIndex = 0;
   int _selectedPaymentIndex = 0;
-  String _courierComment = ''; // Will initialize to t('addComment') in build
+  String _courierComment = '';
+  Address? _selectedAddress;
+  String _recipientName = '';
+  String _apartmentDetails = '';
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  // ✅ Загрузка начальных данных (адрес и имя пользователя)
+  Future<void> _loadInitialData() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await UserService().getCurrentUser();
+      final addresses = user?.addresses ?? [];
+      final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.firstOrNull;
+      
+      setState(() {
+        _selectedAddress = defaultAddr;
+        _recipientName = user?.name ?? user?.email.split('@').first ?? '';
+        _apartmentDetails = defaultAddr?.apartment ?? '';
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  // ✅ Выбор нового адреса
+  Future<void> _pickAddress() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SavedAddressesScreen()),
+    );
+    // Обновляем данные после выбора
+    final addresses = await UserService().getAddresses();
+    final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.firstOrNull;
+    
+    setState(() {
+      _selectedAddress = defaultAddr;
+      if (defaultAddr != null) {
+        _apartmentDetails = defaultAddr.apartment ?? '';
+      }
+    });
+  }
+
+  // ✅ Редактирование текстового поля (Получатель или Квартира)
+  void _editTextField(String title, String initialValue, Function(String) onSave) {
+    final t = getTranslations();
+    final controller = TextEditingController(text: initialValue);
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            hintText: t('enter_email_hint'), // Reuse or use generic hint
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(t('cancel'))),
+          ElevatedButton(
+            onPressed: () {
+              onSave(controller.text.trim());
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB07183), foregroundColor: Colors.white),
+            child: Text(t('save')),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -88,7 +169,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
         ),
         centerTitle: true,
       ),
-      body: Column(
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
@@ -116,26 +199,43 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
   Widget _buildInfoSection(AppTranslations t) {
     return Column(
       children: [
-        _buildInfoRow(t('recipient'), 'Lada'),
+        _buildInfoRow(
+          t('recipient'), 
+          _recipientName.isEmpty ? t('unknown') : _recipientName,
+          isAddable: true,
+          onTap: () => _editTextField(t('recipient'), _recipientName, (val) => setState(() => _recipientName = val)),
+        ),
         const Divider(height: 1),
-        _buildInfoRow(t('address'), 'Astana, Uly Dala Avenue, 31'),
+        _buildInfoRow(
+          t('address'),
+          _selectedAddress?.street ?? t('addAddress'),
+          isAddable: true,
+          onTap: _pickAddress,
+        ),
         const Divider(height: 1),
-        _buildInfoRow(t('apt_office_floor_entrance'), t('apt_office_floor_entrance_hint')),
+        _buildInfoRow(
+          t('apt_office_floor_entrance'),
+          _apartmentDetails.isEmpty ? t('apt_office_floor_entrance_hint') : _apartmentDetails,
+          isAddable: true,
+          onTap: () => _editTextField(t('apt_office_floor_entrance'), _apartmentDetails, (val) => setState(() => _apartmentDetails = val)),
+        ),
         const Divider(height: 1),
         _buildInfoRow(
           t('courierComment'),
           _courierComment.isEmpty ? t('addComment') : _courierComment,
           isAddable: true,
+          onTap: _showCourierComment,
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isAddable = false}) {
+  Widget _buildInfoRow(String label, String value, {bool isAddable = false, VoidCallback? onTap}) {
     return GestureDetector(
-      onTap: isAddable ? () => _showCourierComment() : null,
+      onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(color: Colors.white),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -152,8 +252,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                   value,
                   style: TextStyle(
                     fontSize: 15,
-                    color: isAddable ? Colors.grey[700] : Colors.black,
-                    fontWeight: isAddable ? FontWeight.w400 : FontWeight.w500,
+                    color: isAddable ? const Color(0xFFB07183) : Colors.black,
+                    fontWeight: isAddable ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -166,7 +266,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-// Метод для показа модального окна
+// Метод для показа модального окна комментария
   void _showCourierComment() async {
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -179,7 +279,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       setState(() {
         _courierComment = result;
       });
-      print('💬 Courier comment: $result');
     }
   }
 
@@ -479,6 +578,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
   bool _isPlacingOrder = false;
 
   Future<void> _placeOrder(AppTranslations t, List<Map<String, String>> deliveryOptions, List<Map<String, String>> paymentOptions) async {
+    if (_selectedAddress == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('addAddress')), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    if (_recipientName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(t('recipient')), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
     setState(() => _isPlacingOrder = true);
 
     try {
@@ -497,8 +610,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
         )).toList(),
         total: widget.total,
         status: 'placed',
-        recipient: '', // 🔹 Позже заполнишь из профиля пользователя
-        address: 'Astana, Uly Dala Avenue, 31', // 🔹 Позже из сохранённых адресов
+        recipient: _recipientName,
+        address: _selectedAddress!.street,
+        apartment: _apartmentDetails,
         deliveryTime: deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
         payment: paymentOptions[_selectedPaymentIndex]['title']!,
         comment: _courierComment.isEmpty ? null : _courierComment,
@@ -520,7 +634,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
           MaterialPageRoute(
             builder: (context) => OrderInProgressScreen(
               orderNumber: '№${orderId.substring(0, 8).toUpperCase()}',
-              orderId: orderId, // ← добавь
+              orderId: orderId,
               status: 'placed',
             ),
           ),

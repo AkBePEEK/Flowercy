@@ -1,46 +1,31 @@
 import 'package:flutter/material.dart';
+import '../../services/language_service.dart';
 
 class FlowerCatalogHeader extends StatelessWidget {
   static const List<Map<String, String>> defaultCategories = [
-    {'name': 'Flowers', 'image': 'assets/flowers/flowersCategory/flowers.png'},
-    {
-      'name': 'Monobouquets',
-      'image': 'assets/flowers/flowersCategory/monobouquets.png'
-    },
-    {
-      'name': 'Signature',
-      'image': 'assets/flowers/flowersCategory/signature.png'
-    },
-    {
-      'name': 'By the stem',
-      'image': 'assets/flowers/flowersCategory/byTheStem.png'
-    },
-    {'name': 'In a box', 'image': 'assets/flowers/flowersCategory/inBox.png'},
-    {
-      'name': 'In a basket',
-      'image': 'assets/flowers/flowersCategory/inBasket.png'
-    },
-    {'name': 'Bridal', 'image': 'assets/flowers/flowersCategory/bridal.png'},
-    {
-      'name': 'In a wood box',
-      'image': 'assets/flowers/flowersCategory/inWoodBox.png'
-    },
+    {'key': 'flowers', 'image': 'assets/flowers/flowersCategory/flowers.png'},
+    {'key': 'monobouquets', 'image': 'assets/flowers/flowersCategory/monobouquets.png'},
+    {'key': 'signature', 'image': 'assets/flowers/flowersCategory/signature.png'},
+    {'key': 'by_the_stem', 'image': 'assets/flowers/flowersCategory/byTheStem.png'},
+    {'key': 'in_a_box', 'image': 'assets/flowers/flowersCategory/inBox.png'},
+    {'key': 'in_a_basket', 'image': 'assets/flowers/flowersCategory/inBasket.png'},
+    {'key': 'bridal', 'image': 'assets/flowers/flowersCategory/bridal.png'},
+    {'key': 'in_a_wood_box', 'image': 'assets/flowers/flowersCategory/inWoodBox.png'},
   ];
 
   static const List<String> defaultFilters = [
-    'Price',
-    'Free delivery',
-    'Flowers type',
-    'Delivery time',
-    'Color',
+    'price_filter',
+    'free_delivery',
+    'flowers_type',
+    'delivery_time',
+    'color',
   ];
 
   final String title;
   final VoidCallback? onBackTap;
   final VoidCallback? onFilterTap;
   final ValueChanged<String>? onCategoryTap;
-  final VoidCallback?
-      onFlowerTypeTap; // ✅ Callback для открытия модального окна
+  final VoidCallback? onFlowerTypeTap; // ✅ Callback для открытия модального окна
   final String? selectedCategory;
   final List<Map<String, String>>? categories;
   final List<String>? filters;
@@ -106,38 +91,49 @@ class FlowerCatalogHeader extends StatelessWidget {
   }
 
   Widget _buildCategories() {
+    // Determine how many items per row (max 4 per row, up to 2 rows)
+    final totalItems = _categories.length;
+    final itemsInFirstRow = totalItems > 4 ? 4 : totalItems;
+    final itemsInSecondRow = totalItems > 4 ? (totalItems - 4 > 4 ? 4 : totalItems - 4) : 0;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(4, (index) {
-              return _buildCategoryItem(
-                _categories[index]['name']!,
-                _categories[index]['image']!,
-              );
-            }),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(4, (index) {
-              return _buildCategoryItem(
-                _categories[index + 4]['name']!,
-                _categories[index + 4]['image']!,
-              );
-            }),
-          ),
+          if (itemsInFirstRow > 0)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(itemsInFirstRow, (index) {
+                final item = _categories[index];
+                return _buildCategoryItem(
+                  item['key'] ?? 'unknown',
+                  item['image'] ?? '',
+                );
+              }),
+            ),
+          if (itemsInSecondRow > 0) ...[
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(itemsInSecondRow, (index) {
+                final item = _categories[index + 4];
+                return _buildCategoryItem(
+                  item['key'] ?? 'unknown',
+                  item['image'] ?? '',
+                );
+              }),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildCategoryItem(String name, String image) {
-    final isSelected = name == selectedCategory;
+  Widget _buildCategoryItem(String key, String image) {
+    final t = getTranslations();
+    final isSelected = key == selectedCategory;
     return GestureDetector(
-      onTap: () => onCategoryTap?.call(name),
+      onTap: () => onCategoryTap?.call(key),
       child: Column(
         children: [
           Container(
@@ -151,26 +147,20 @@ class FlowerCatalogHeader extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: Image.asset(
+              child: image.startsWith('http') 
+                ? Image.network(image, fit: BoxFit.cover, errorBuilder: (_,__,___) => _buildPlaceholder(isSelected))
+                : Image.asset(
                 image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: isSelected
-                        ? const Color(0xFFB07183).withValues(alpha: 0.2)
-                        : Colors.grey[200],
-                    child: Icon(
-                      Icons.local_florist,
-                      color: isSelected ? const Color(0xFFB07183) : Colors.grey,
-                    ),
-                  );
+                  return _buildPlaceholder(isSelected);
                 },
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            name,
+            t(key),
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
@@ -185,7 +175,20 @@ class FlowerCatalogHeader extends StatelessWidget {
     );
   }
 
+  Widget _buildPlaceholder(bool isSelected) {
+    return Container(
+      color: isSelected
+          ? const Color(0xFFB07183).withValues(alpha: 0.2)
+          : Colors.grey[200],
+      child: Icon(
+        Icons.local_florist,
+        color: isSelected ? const Color(0xFFB07183) : Colors.grey,
+      ),
+    );
+  }
+
   Widget _buildFilters() {
+    final t = getTranslations();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -229,11 +232,11 @@ class FlowerCatalogHeader extends StatelessWidget {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Text('Reset all', style: TextStyle(fontSize: 13)),
-                  SizedBox(width: 4),
-                  Icon(Icons.close, size: 14),
+                  Text(t('reset_all'), style: const TextStyle(fontSize: 13)),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.close, size: 14),
                 ],
               ),
             ),
@@ -243,8 +246,9 @@ class FlowerCatalogHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    final opensTypeFilter = label == 'Flowers type' || label == 'Sweets type';
+  Widget _buildFilterChip(String filterKey) {
+    final t = getTranslations();
+    final opensTypeFilter = filterKey == 'flowers_type' || filterKey == 'sweets_type';
 
     return GestureDetector(
       onTap: opensTypeFilter ? onFlowerTypeTap : null,
@@ -257,7 +261,7 @@ class FlowerCatalogHeader extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(label, style: const TextStyle(fontSize: 13)),
+            Text(t(filterKey), style: const TextStyle(fontSize: 13)),
             const SizedBox(width: 4),
             const Icon(Icons.chevron_right, size: 16),
           ],
