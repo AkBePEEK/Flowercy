@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../services/aiFloristService.dart';
 import '../../services/userService.dart';
+import 'bouquetComposer.dart';
 
 class AIFloristScreen extends StatefulWidget {
   const AIFloristScreen({super.key});
@@ -19,29 +20,89 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
   String? _selectedSize;
   final TextEditingController _budgetFromController = TextEditingController();
   final TextEditingController _budgetToController = TextEditingController();
+  final TextEditingController _nlpController = TextEditingController();
   List<String> _flowersToInclude = [];
   List<String> _flowersToAvoid = [];
+  bool _includeExternal = false;
 
   // Генерация
   bool _isGenerating = false;
   List<Map<String, dynamic>> _generatedBouquets = [];
 
-  final List<String> _occasions = [
-    'Birthday', 'Anniversary', 'Valentine\'s Day',
-    'March 8th', 'Thank you', 'Congratulations',
-  ];
-  final List<String> _colors = ['Pink', 'Red', 'White', 'Yellow', 'Purple', 'Mixed'];
+  List<String> _occasions = [];
+  List<String> _colors = [];
   final List<String> _sizes = ['S', 'M', 'L'];
-  final List<String> _allFlowers = [
-    'Roses', 'Tulips', 'Peonies', 'Lilies', 'Daisies',
-    'Orchids', 'Carnations', 'Chrysanthemums', 'Hydrangeas',
-  ];
+  List<String> _allFlowers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchParameters();
+  }
+
+  Future<void> _fetchParameters() async {
+    try {
+      final aiService = AIFloristService();
+      final occasions = await aiService.getSupportedOccasions();
+      final colors = await aiService.getSupportedColors();
+      final flowers = await aiService.getSupportedFlowers();
+      
+      setState(() {
+        _occasions = occasions.isNotEmpty ? occasions : [
+          'Birthday', 'Anniversary', 'Valentine\'s Day',
+          'March 8th', 'Thank you', 'Congratulations',
+        ];
+        _colors = colors.isNotEmpty ? colors : ['Pink', 'Red', 'White', 'Yellow', 'Purple', 'Mixed'];
+        _allFlowers = flowers.isNotEmpty ? flowers : [
+          'Roses', 'Tulips', 'Peonies', 'Lilies', 'Daisies',
+          'Orchids', 'Carnations', 'Chrysanthemums', 'Hydrangeas',
+        ];
+      });
+    } catch (e) {
+      print('Error fetching parameters: $e');
+      // Fallback to defaults
+      setState(() {
+        _occasions = [
+          'Birthday', 'Anniversary', 'Valentine\'s Day',
+          'March 8th', 'Thank you', 'Congratulations',
+        ];
+        _colors = ['Pink', 'Red', 'White', 'Yellow', 'Purple', 'Mixed'];
+        _allFlowers = [
+          'Roses', 'Tulips', 'Peonies', 'Lilies', 'Daisies',
+          'Orchids', 'Carnations', 'Chrysanthemums', 'Hydrangeas',
+        ];
+      });
+    }
+  }
 
   @override
   void dispose() {
     _budgetFromController.dispose();
     _budgetToController.dispose();
+    _nlpController.dispose();
     super.dispose();
+  }
+
+  Future<void> _parseText() async {
+    if (_nlpController.text.isEmpty) return;
+    
+    setState(() => _isGenerating = true);
+    try {
+      final result = await AIFloristService().nlpParse(_nlpController.text);
+      setState(() {
+        if (result['occasion'] != null) _selectedOccasion = result['occasion'];
+        if (result['colors'] != null) _selectedColors = List<String>.from(result['colors']);
+        if (result['flowers_include'] != null) _flowersToInclude = List<String>.from(result['flowers_include']);
+        if (result['flowers_avoid'] != null) _flowersToAvoid = List<String>.from(result['flowers_avoid']);
+        if (result['budget_max'] != null) _budgetToController.text = result['budget_max'].toString();
+        _isGenerating = false;
+      });
+    } catch (e) {
+      setState(() => _isGenerating = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to parse text: $e')),
+      );
+    }
   }
 
   Future<void> _generate() async {
@@ -61,6 +122,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
         size: _selectedSize,
         budgetMax: int.tryParse(_budgetToController.text),
         userId: userId,
+        includeExternal: _includeExternal,
       );
 
       setState(() {
@@ -108,7 +170,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Our florist will contact you shortly to confirm the order for "${bouquet['title']}"',
+              'Our florist will contact you shortly to confirm the order for "${bouquet['name'] ?? 'Bouquet'}"',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -247,6 +309,37 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
           ),
           const SizedBox(height: 24),
 
+          // NLP Input
+          _buildSectionTitle('Describe your dream bouquet'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _nlpController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g., Soft pink roses under 20k',
+                      hintStyle: TextStyle(color: Colors.grey[400]),
+                      border: InputBorder.none,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.auto_awesome, color: Color(0xFFB07183)),
+                  onPressed: _parseText,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
           // Occasion
           _buildSectionTitle('Occasion'),
           const SizedBox(height: 8),
@@ -354,6 +447,21 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                 setState(() => _flowersToAvoid.remove(f));
               })),
               _buildAddChip(() => _showFlowerSelector('avoid')),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // External results
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSectionTitle('Include results from Wolt/2GIS'),
+              Switch(
+                value: _includeExternal,
+                onChanged: (val) => setState(() => _includeExternal = val),
+                activeColor: const Color(0xFFB07183),
+              ),
             ],
           ),
 
@@ -483,18 +591,47 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFFB07183)),
                 ),
                 const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 36,
-                  child: ElevatedButton(
-                    onPressed: () => _sendToFlorist(bouquet),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFB07183),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: () => _sendToFlorist(bouquet),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFB07183),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('Send', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
                     ),
-                    child: const Text('Send to florist', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            final flowersString = bouquet['flowers'] as String? ?? '';
+                            final flowers = flowersString.split(',').map((s) => s.trim()).toList();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BouquetComposerScreen(initialFlowers: flowers),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFFB07183),
+                            side: const BorderSide(color: Color(0xFFB07183)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: const Text('3D View', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
