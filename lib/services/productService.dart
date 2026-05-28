@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product.dart';
 
 class ProductService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
   final String _collection = 'products';
+
+  ProductService({FirebaseFirestore? firestore})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   // ✅ Получить все товары
   Future<List<Product>> getAllProducts() async {

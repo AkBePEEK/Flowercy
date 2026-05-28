@@ -3,8 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart';
 
 class OrderService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+
+  OrderService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
   final String _collection = 'orders';
 
   // ✅ Создать заказ

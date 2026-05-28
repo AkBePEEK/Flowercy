@@ -3,8 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/notification.dart';
 
 class NotificationService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
+
+  NotificationService({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance;
 
   String? get _userId => _auth.currentUser?.uid;
 

@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class AIFloristService {
+  final http.Client _client;
+
+  AIFloristService({http.Client? client}) : _client = client ?? http.Client();
+
   // Если тестируете локально с телефона — используй IP компьютера
   // Если задеплоено — используй реальный URL
   static const String _baseUrl = 'http://192.168.1.176:8000';
@@ -17,7 +21,7 @@ class AIFloristService {
     int? budgetMax,
     String userId = 'guest',
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$_baseUrl/recommend'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -43,7 +47,7 @@ class AIFloristService {
 
   // Рекомендации по тексту
   Future<List<Map<String, dynamic>>> recommendFromText(String query) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$_baseUrl/ai/recommend-from-text'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -67,7 +71,7 @@ class AIFloristService {
     String? mood,
     String? occasion,
   }) async {
-    final response = await http.post(
+    final response = await _client.post(
       Uri.parse('$_baseUrl/generate-image'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
