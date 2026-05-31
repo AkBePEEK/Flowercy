@@ -27,19 +27,40 @@ void main() {
       expect(user.favorites.length, 1);
       expect(user.cart.length, 1);
       expect(user.addresses.length, 1);
+      expect(user.role, UserRole.user);
+      expect(user.isAdmin, false);
     });
 
-    test('toFirestore should return a correct map', () {
+    test('fromFirestore should handle admin role correctly', () async {
+      final firestore = FakeFirebaseFirestore();
+      final data = {
+        'email': 'admin@test.com',
+        'role': 'admin',
+        'createdAt': Timestamp.now(),
+      };
+
+      await firestore.collection('users').doc('admin1').set(data);
+      final snapshot = await firestore.collection('users').doc('admin1').get();
+
+      final user = User.fromFirestore(snapshot);
+
+      expect(user.role, UserRole.admin);
+      expect(user.isAdmin, true);
+    });
+
+    test('toFirestore should return a correct map including role', () {
       final now = DateTime.now();
       final user = User(
         id: 'u123',
         email: 'test@test.com',
         createdAt: now,
+        role: UserRole.superAdmin,
       );
 
       final map = user.toFirestore();
 
       expect(map['email'], 'test@test.com');
+      expect(map['role'], 'superAdmin');
       expect(map['createdAt'], isA<Timestamp>());
     });
   });

@@ -76,15 +76,15 @@ class HomeScreen extends StatelessWidget {
             parent: AlwaysScrollableScrollPhysics()),
         padding: const EdgeInsets.symmetric(horizontal: 12),
         children: [
-          _buildCategoryItem(t('flowers'), Colors.purple[100]!,
+          _buildCategoryItem(t('flowers'), 'flowers', Colors.purple[100]!,
               'assets/flowers/homeScreen/flowersCategories.png', context),
-          _buildCategoryItem(t('sweets'), Colors.pink[100]!,
+          _buildCategoryItem(t('sweets'), 'sweets', Colors.pink[100]!,
               'assets/flowers/homeScreen/sweetsCategories.png', context),
-          _buildCategoryItem(t('plants'), Colors.green[100]!,
+          _buildCategoryItem(t('plants'), 'plants', Colors.green[100]!,
               'assets/flowers/homeScreen/plantsCategories.png', context),
-          _buildCategoryItem(t('bears'), Colors.blue[100]!,
+          _buildCategoryItem(t('bears'), 'bears', Colors.blue[100]!,
               'assets/flowers/homeScreen/bearCategories.png', context),
-          _buildCategoryItem(t('balloons'), Colors.orange[100]!,
+          _buildCategoryItem(t('balloons'), 'balloons', Colors.orange[100]!,
               'assets/flowers/homeScreen/balloonsCategories.png', context),
         ],
       ),
@@ -92,10 +92,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildCategoryItem(
-      String name, Color color, String imagePath, BuildContext context) {
+      String name, String id, Color color, String imagePath, BuildContext context) {
     return GestureDetector(
       onTap: () {
-        _navigateToCategory(name, context);
+        _navigateToCategory(id, context);
       },
       child: Container(
         width: 80,
@@ -130,9 +130,9 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               name,
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 12,
-                color: const Color(0xFF333333),
+                color: Color(0xFF333333),
                 fontWeight: FontWeight.w500,
               ),
               maxLines: 1,
@@ -144,15 +144,13 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-// Функция навигации (добавьте в класс _CatalogScreenState)
-  void _navigateToCategory(String categoryName, BuildContext context) {
-    final t = getTranslations();
-    if (categoryName == t('flowers')) {
+  void _navigateToCategory(String categoryId, BuildContext context) {
+    if (categoryId == 'flowers') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const FlowerCategoryScreen()),
       );
-    } else if (categoryName == t('sweets')) {
+    } else if (categoryId == 'sweets') {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const SweetsCategoryScreen()),

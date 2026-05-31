@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/order.dart';
+import '../models/bouquetRequest.dart';
 
 class OrderService {
   final FirebaseFirestore _firestore;
@@ -10,10 +11,17 @@ class OrderService {
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance;
   final String _collection = 'orders';
+  final String _requestCollection = 'bouquet_requests';
 
   // ✅ Создать заказ
   Future<String> createOrder(Order order) async {
     final docRef = await _firestore.collection(_collection).add(order.toFirestore());
+    return docRef.id;
+  }
+
+  // ✅ Создать запрос на букет (AI)
+  Future<String> createBouquetRequest(BouquetRequest request) async {
+    final docRef = await _firestore.collection(_requestCollection).add(request.toFirestore());
     return docRef.id;
   }
 
@@ -27,7 +35,7 @@ class OrderService {
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
-        .map((doc) => Order.fromFirestore(doc)) // ✅ Без лишнего cast
+        .map((doc) => Order.fromFirestore(doc))
         .toList());
   }
 
@@ -42,7 +50,6 @@ class OrderService {
         .orderBy('createdAt', descending: true)
         .get();
 
-    // ✅ doc уже имеет правильный тип, cast не нужен
     return snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList();
   }
 
@@ -50,7 +57,7 @@ class OrderService {
   Future<Order?> getOrderById(String orderId) async {
     final doc = await _firestore.collection(_collection).doc(orderId).get();
     if (doc.exists) {
-      return Order.fromFirestore(doc); // ✅ Без cast
+      return Order.fromFirestore(doc);
     }
     return null;
   }
@@ -58,5 +65,32 @@ class OrderService {
   // ✅ Обновить статус заказа
   Future<void> updateOrderStatus(String orderId, String status) async {
     await _firestore.collection(_collection).doc(orderId).update({'status': status});
+  }
+
+  // ✅ Обновить статус запроса на букет
+  Future<void> updateRequestStatus(String requestId, String status) async {
+    await _firestore.collection(_requestCollection).doc(requestId).update({'status': status});
+  }
+
+  // ✅ Получить все заказы (для админа)
+  Stream<List<Order>> getAllOrdersStream() {
+    return _firestore
+        .collection(_collection)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList();
+    });
+  }
+
+  // ✅ Получить все запросы на букеты (для админа)
+  Stream<List<BouquetRequest>> getAllBouquetRequestsStream() {
+    return _firestore
+        .collection(_requestCollection)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => BouquetRequest.fromFirestore(doc)).toList();
+    });
   }
 }

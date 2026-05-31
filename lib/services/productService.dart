@@ -81,4 +81,44 @@ class ProductService {
       return [];
     }
   }
+
+  // ✅ НОВЫЙ МЕТОД: Создать товар
+  Future<String?> createProduct(Product product) async {
+    try {
+      final docRef = await _firestore.collection(_collection).add(product.toFirestore());
+      return docRef.id;
+    } catch (e) {
+      print('❌ Error creating product: $e');
+      return null;
+    }
+  }
+
+  // ✅ НОВЫЙ МЕТОД: Обновить товар
+  Future<bool> updateProduct(Product product) async {
+    try {
+      await _firestore.collection(_collection).doc(product.id).update(product.toFirestore());
+      return true;
+    } catch (e) {
+      print('❌ Error updating product: $e');
+      return false;
+    }
+  }
+
+  // ✅ НОВЫЙ МЕТОД: Удалить товар
+  Future<bool> deleteProduct(String id) async {
+    try {
+      await _firestore.collection(_collection).doc(id).delete();
+      return true;
+    } catch (e) {
+      print('❌ Error deleting product: $e');
+      return false;
+    }
+  }
+
+  // ✅ НОВЫЙ МЕТОД: Стрим всех товаров (для админки)
+  Stream<List<Product>> getAllProductsStream() {
+    return _firestore.collection(_collection).snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => Product.fromFirestore(doc)).toList();
+    });
+  }
 }

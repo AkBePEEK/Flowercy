@@ -37,12 +37,17 @@ class UserService {
     final userId = currentUserId;
     if (userId == null) throw Exception('User not authenticated');
 
+    // ✅ Проверяем, есть ли уже пользователи. Если нет — первый будет superAdmin
+    final usersSnapshot = await _firestore.collection(_collection).limit(1).get();
+    final bool isFirstUser = usersSnapshot.docs.isEmpty;
+
     final user = User(
       id: userId,
       email: email,
       name: name,
       phone: phone,
       createdAt: DateTime.now(),
+      role: isFirstUser ? UserRole.superAdmin : UserRole.user,
     );
 
     await _firestore.collection(_collection).doc(userId).set(user.toFirestore());
@@ -364,5 +369,23 @@ class UserService {
     } catch (e) {
       return null; // Если не найдено
     }
+  }
+
+  // ✅ Получить поток всех пользователей (для админки)
+  Stream<List<User>> getAllUsersStream() {
+    return _firestore.collection(_collection)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => User.fromFirestore(doc))
+        .toList());
+  }
+
+  // ✅ Обновить роль пользователя
+  Future<void> updateUserRole(String userId, UserRole role) async {
+    await _firestore.collection(_collection).doc(userId).update({
+      'role': role.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
   }
 }

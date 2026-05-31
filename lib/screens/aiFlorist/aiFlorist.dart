@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
+import 'dart:convert'; // ✅ Добавлено для декодирования base64
 
 import '../../services/aiFloristService.dart';
+// ... (rest of imports)
 import '../../services/userService.dart';
+import '../../services/language_service.dart';
+import '../../services/orderService.dart'; // ✅ Добавлено
+import '../../models/bouquetRequest.dart'; // ✅ Добавлено
 import 'bouquetComposer.dart';
 
 class AIFloristScreen extends StatefulWidget {
@@ -11,12 +16,12 @@ class AIFloristScreen extends StatefulWidget {
   State<AIFloristScreen> createState() => _AIFloristScreenState();
 }
 
-class _AIFloristScreenState extends State<AIFloristScreen> {
+class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMixin {
   int _currentStep = 0; // 0 — параметры, 1 — генерация
 
-  // Параметры букета
-  String? _selectedOccasion;
-  List<String> _selectedColors = [];
+  // Параметры букета (храним КЛЮЧИ, а не переведенные строки)
+  String? _selectedOccasionKey;
+  List<String> _selectedColorKeys = [];
   String? _selectedSize;
   final TextEditingController _budgetFromController = TextEditingController();
   final TextEditingController _budgetToController = TextEditingController();
@@ -29,50 +34,25 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
   bool _isGenerating = false;
   List<Map<String, dynamic>> _generatedBouquets = [];
 
-  List<String> _occasions = [];
-  List<String> _colors = [];
+  // Статические списки ключей для перевода
+  final List<String> _occasionKeys = ['birthday', 'anniversary', 'valentines_day', 'march_8th', 'thank_you', 'congratulations'];
+  final List<String> _colorKeys = ['pink', 'red', 'white', 'yellow', 'purple', 'mixed'];
   final List<String> _sizes = ['S', 'M', 'L'];
   List<String> _allFlowers = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchParameters();
+    _fetchFlowers();
   }
 
-  Future<void> _fetchParameters() async {
+  Future<void> _fetchFlowers() async {
     try {
-      final aiService = AIFloristService();
-      final occasions = await aiService.getSupportedOccasions();
-      final colors = await aiService.getSupportedColors();
-      final flowers = await aiService.getSupportedFlowers();
-      
-      setState(() {
-        _occasions = occasions.isNotEmpty ? occasions : [
-          'Birthday', 'Anniversary', 'Valentine\'s Day',
-          'March 8th', 'Thank you', 'Congratulations',
-        ];
-        _colors = colors.isNotEmpty ? colors : ['Pink', 'Red', 'White', 'Yellow', 'Purple', 'Mixed'];
-        _allFlowers = flowers.isNotEmpty ? flowers : [
-          'Roses', 'Tulips', 'Peonies', 'Lilies', 'Daisies',
-          'Orchids', 'Carnations', 'Chrysanthemums', 'Hydrangeas',
-        ];
-      });
-    } catch (e) {
-      print('Error fetching parameters: $e');
-      // Fallback to defaults
-      setState(() {
-        _occasions = [
-          'Birthday', 'Anniversary', 'Valentine\'s Day',
-          'March 8th', 'Thank you', 'Congratulations',
-        ];
-        _colors = ['Pink', 'Red', 'White', 'Yellow', 'Purple', 'Mixed'];
-        _allFlowers = [
-          'Roses', 'Tulips', 'Peonies', 'Lilies', 'Daisies',
-          'Orchids', 'Carnations', 'Chrysanthemums', 'Hydrangeas',
-        ];
-      });
-    }
+      final flowers = await AIFloristService().getSupportedFlowers();
+      if (mounted && flowers.isNotEmpty) {
+        setState(() => _allFlowers = flowers);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -84,14 +64,21 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
   }
 
   Future<void> _parseText() async {
+    final t = getTranslations();
     if (_nlpController.text.isEmpty) return;
     
     setState(() => _isGenerating = true);
     try {
       final result = await AIFloristService().nlpParse(_nlpController.text);
+      if (!mounted) return;
       setState(() {
-        if (result['occasion'] != null) _selectedOccasion = result['occasion'];
-        if (result['colors'] != null) _selectedColors = List<String>.from(result['colors']);
+        if (result['occasion'] != null) {
+          final occasion = result['occasion'].toString().toLowerCase();
+          _selectedOccasionKey = _occasionKeys.contains(occasion) ? occasion : _occasionKeys.first;
+        }
+        if (result['colors'] != null) {
+           _selectedColorKeys = List<String>.from(result['colors']).map((c) => c.toLowerCase()).toList();
+        }
         if (result['flowers_include'] != null) _flowersToInclude = List<String>.from(result['flowers_include']);
         if (result['flowers_avoid'] != null) _flowersToAvoid = List<String>.from(result['flowers_avoid']);
         if (result['budget_max'] != null) _budgetToController.text = result['budget_max'].toString();
@@ -100,12 +87,13 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     } catch (e) {
       setState(() => _isGenerating = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to parse text: $e')),
+        SnackBar(content: Text('${t('error')}: $e')),
       );
     }
   }
 
   Future<void> _generate() async {
+    final t = getTranslations();
     setState(() {
       _isGenerating = true;
       _currentStep = 1;
@@ -115,8 +103,8 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
       final userId = UserService().currentUserId ?? 'guest';
 
       final results = await AIFloristService().recommend(
-        occasion: _selectedOccasion ?? 'Birthday',
-        colors: _selectedColors,
+        occasion: _selectedOccasionKey ?? 'birthday',
+        colors: _selectedColorKeys,
         flowersInclude: _flowersToInclude,
         flowersAvoid: _flowersToAvoid,
         size: _selectedSize,
@@ -133,8 +121,8 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
       setState(() => _isGenerating = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to generate. Check your connection.'),
+          SnackBar(
+            content: Text(t('network_error')),
             backgroundColor: Colors.red,
           ),
         );
@@ -142,7 +130,52 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     }
   }
 
-  void _sendToFlorist(Map<String, dynamic> bouquet) {
+  Future<void> _sendToFlorist(Map<String, dynamic> bouquet) async {
+    final t = getTranslations();
+    final userService = UserService();
+    final user = await userService.getCurrentUser();
+    
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('signIn'))),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isGenerating = true);
+
+    try {
+      final request = BouquetRequest(
+        id: '',
+        userId: user.id,
+        userName: user.name ?? user.email.split('@').first,
+        userPhone: user.phone ?? '',
+        bouquetName: bouquet['name'] ?? 'AI Bouquet',
+        flowers: bouquet['flowers'] ?? '',
+        price: bouquet['price'] ?? 0,
+        image: bouquet['catalog_image'],
+        createdAt: DateTime.now(),
+      );
+
+      await OrderService().createBouquetRequest(request);
+
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        _showSuccessSheet(bouquet, t);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${t('error')}: $e')),
+        );
+      }
+    }
+  }
+
+  void _showSuccessSheet(Map<String, dynamic> bouquet, AppTranslations t) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -164,13 +197,13 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
             const SizedBox(height: 20),
             const Icon(Icons.check_circle, color: Color(0xFFB07183), size: 48),
             const SizedBox(height: 12),
-            const Text(
-              'Request sent!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            Text(
+              t('request_sent'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Our florist will contact you shortly to confirm the order for "${bouquet['name'] ?? 'Bouquet'}"',
+              '${t('request_sent_desc')} "${bouquet['name'] ?? 'Bouquet'}"',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -190,7 +223,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Great!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text(t('success'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -201,6 +234,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -216,43 +250,39 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
             }
           },
         ),
-        title: const Text(
-          'AI Bouquet',
-          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
+        title: Text(
+          t('ai_bouquet'),
+          style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // Индикатор шагов
-          _buildStepIndicator(),
-
+          _buildStepIndicator(t),
           Expanded(
             child: _currentStep == 0
-                ? _buildParametersStep()
-                : _buildGenerationStep(),
+                ? _buildParametersStep(t)
+                : _buildGenerationStep(t),
           ),
-
-          // Кнопка внизу
-          _buildBottomButton(),
+          _buildBottomButton(t),
         ],
       ),
     );
   }
 
-  Widget _buildStepIndicator() {
+  Widget _buildStepIndicator(AppTranslations t) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          _buildStepDot(0, 'Parameters'),
+          _buildStepDot(0, t('occasion')),
           Expanded(
             child: Container(
               height: 2,
               color: _currentStep >= 1 ? const Color(0xFFB07183) : Colors.grey[200],
             ),
           ),
-          _buildStepDot(1, 'Result'),
+          _buildStepDot(1, t('success')),
         ],
       ),
     );
@@ -292,25 +322,24 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildParametersStep() {
+  Widget _buildParametersStep(AppTranslations t) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Customize your bouquet',
+            t('customize_bouquet'),
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Select flowers, occasion and budget',
+            t('select_flowers_occasion_budget'),
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
 
-          // NLP Input
-          _buildSectionTitle('Describe your dream bouquet'),
+          _buildSectionTitle(t('describe_dream_bouquet')),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -325,7 +354,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                   child: TextField(
                     controller: _nlpController,
                     decoration: InputDecoration(
-                      hintText: 'e.g., Soft pink roses under 20k',
+                      hintText: t('dream_bouquet_hint'),
                       hintStyle: TextStyle(color: Colors.grey[400]),
                       border: InputBorder.none,
                     ),
@@ -340,8 +369,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
           ),
           const SizedBox(height: 24),
 
-          // Occasion
-          _buildSectionTitle('Occasion'),
+          _buildSectionTitle(t('occasion')),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -352,28 +380,27 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
-                value: _selectedOccasion,
-                hint: const Text('Select occasion'),
+                value: _selectedOccasionKey,
+                hint: Text(t('select_occasion')),
                 isExpanded: true,
-                items: _occasions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-                onChanged: (value) => setState(() => _selectedOccasion = value),
+                items: _occasionKeys.map((key) => DropdownMenuItem(value: key, child: Text(t(key)))).toList(),
+                onChanged: (value) => setState(() => _selectedOccasionKey = value),
               ),
             ),
           ),
 
           const SizedBox(height: 24),
 
-          // Colors
-          _buildSectionTitle('Colors'),
+          _buildSectionTitle(t('colors')),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: _colors.map((color) {
-              final isSelected = _selectedColors.contains(color);
-              return _buildChip(color, isSelected, () {
+            children: _colorKeys.map((key) {
+              final isSelected = _selectedColorKeys.contains(key);
+              return _buildChip(t(key), isSelected, () {
                 setState(() {
-                  isSelected ? _selectedColors.remove(color) : _selectedColors.add(color);
+                  isSelected ? _selectedColorKeys.remove(key) : _selectedColorKeys.add(key);
                 });
               });
             }).toList(),
@@ -381,8 +408,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
 
           const SizedBox(height: 24),
 
-          // Size
-          _buildSectionTitle('Size'),
+          _buildSectionTitle(t('size')),
           const SizedBox(height: 8),
           Row(
             children: _sizes.map((size) {
@@ -407,21 +433,19 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
 
           const SizedBox(height: 24),
 
-          // Budget
-          _buildSectionTitle('Budget (₸)'),
+          _buildSectionTitle('${t('budget')} (₸)'),
           const SizedBox(height: 8),
           Row(
             children: [
-              Expanded(child: _buildBudgetField(_budgetFromController, 'From')),
+              Expanded(child: _buildBudgetField(_budgetFromController, t('from'))),
               const SizedBox(width: 12),
-              Expanded(child: _buildBudgetField(_budgetToController, 'Up to')),
+              Expanded(child: _buildBudgetField(_budgetToController, t('up_to'))),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          // Flowers to include
-          _buildSectionTitle('Flowers to include'),
+          _buildSectionTitle(t('flowers_to_include')),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -430,14 +454,13 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
               ..._flowersToInclude.map((f) => _buildRemovableChip(f, () {
                 setState(() => _flowersToInclude.remove(f));
               })),
-              _buildAddChip(() => _showFlowerSelector('include')),
+              _buildAddChip(() => _showFlowerSelector('include', t), t),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          // Flowers to avoid
-          _buildSectionTitle('Flowers to avoid'),
+          _buildSectionTitle(t('flowers_to_avoid')),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -446,21 +469,21 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
               ..._flowersToAvoid.map((f) => _buildRemovableChip(f, () {
                 setState(() => _flowersToAvoid.remove(f));
               })),
-              _buildAddChip(() => _showFlowerSelector('avoid')),
+              _buildAddChip(() => _showFlowerSelector('avoid', t), t),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          // External results
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildSectionTitle('Include results from Wolt/2GIS'),
+              _buildSectionTitle(t('include_external_results')),
               Switch(
                 value: _includeExternal,
                 onChanged: (val) => setState(() => _includeExternal = val),
-                activeColor: const Color(0xFFB07183),
+                activeThumbColor: const Color(0xFFB07183),
+                activeTrackColor: const Color(0xFFB07183).withValues(alpha: 0.5),
               ),
             ],
           ),
@@ -471,17 +494,17 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildGenerationStep() {
+  Widget _buildGenerationStep(AppTranslations t) {
     if (_isGenerating) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFFB07183)),
-            SizedBox(height: 16),
+            const CircularProgressIndicator(color: Color(0xFFB07183)),
+            const SizedBox(height: 16),
             Text(
-              'Generating your bouquet...',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+              t('generating_bouquet'),
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
@@ -493,24 +516,24 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Your bouquets',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          Text(
+            t('your_bouquets'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose the one you like and send it to the florist',
+            t('choose_and_send'),
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 20),
-          ..._generatedBouquets.map((bouquet) => _buildBouquetCard(bouquet)),
+          ..._generatedBouquets.map((bouquet) => _buildBouquetCard(bouquet, t)),
           const SizedBox(height: 16),
           Center(
             child: GestureDetector(
               onTap: _generate,
-              child: const Text(
-                'Regenerate bouquets',
-                style: TextStyle(
+              child: Text(
+                t('regenerate_bouquets'),
+                style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFFB07183),
                   fontWeight: FontWeight.w600,
@@ -525,7 +548,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildBouquetCard(Map<String, dynamic> bouquet) {
+  Widget _buildBouquetCard(Map<String, dynamic> bouquet, AppTranslations t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -543,18 +566,9 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
       ),
       child: Row(
         children: [
-          // Изображение из catalog_image URL или заглушка
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: bouquet['catalog_image'] != null && bouquet['catalog_image'].toString().startsWith('http')
-                ? Image.network(
-              bouquet['catalog_image'],
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-            )
-                : _buildImagePlaceholder(),
+            child: _buildImage(bouquet['catalog_image'] ?? bouquet['generated_image'] ?? bouquet['image_base64']),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -565,31 +579,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                   bouquet['name'] ?? 'Bouquet',
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${bouquet['flowers'] ?? ''} • ${bouquet['mood'] ?? ''}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                if (bouquet['style_tag'] != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB07183).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      bouquet['style_tag'],
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFB07183)),
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                Text(
-                  '${bouquet['price']} ₸',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFFB07183)),
-                ),
+// ...
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -603,7 +593,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Text('Send', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          child: Text(t('send'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -627,7 +617,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                             side: const BorderSide(color: Color(0xFFB07183)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                           ),
-                          child: const Text('3D View', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                          child: Text(t('view_3d'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         ),
                       ),
                     ),
@@ -641,7 +631,40 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
+  Widget _buildImage(String? imageData) {
+    if (imageData == null || imageData.isEmpty) return _buildImagePlaceholder();
+
+    if (imageData.startsWith('http')) {
+      return Image.network(
+        imageData,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+      );
+    } else {
+      // Вероятно, это base64
+      try {
+        String base64Str = imageData;
+        if (base64Str.contains(',')) {
+          base64Str = base64Str.split(',').last;
+        }
+        return Image.memory(
+          base64Decode(base64Str),
+          width: 100,
+          height: 100,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+        );
+      } catch (e) {
+        print('❌ Error decoding base64 image: $e');
+        return _buildImagePlaceholder();
+      }
+    }
+  }
+
   Widget _buildImagePlaceholder() {
+
     return Container(
       width: 100,
       height: 100,
@@ -653,7 +676,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildBottomButton() {
+  Widget _buildBottomButton(AppTranslations t) {
     if (_currentStep == 1 || _isGenerating) return const SizedBox.shrink();
 
     return Container(
@@ -679,7 +702,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Generate bouquet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: Text(t('generate_bouquet_btn'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
       ),
@@ -725,7 +748,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildAddChip(VoidCallback onTap) {
+  Widget _buildAddChip(VoidCallback onTap, AppTranslations t) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -735,12 +758,12 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey[300]!),
         ),
-        child: const Row(
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.add, size: 14, color: Colors.grey),
-            SizedBox(width: 4),
-            Text('Add', style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Icon(Icons.add, size: 14, color: Colors.grey),
+            const SizedBox(width: 4),
+            Text(t('add'), style: const TextStyle(fontSize: 13, color: Colors.grey)),
           ],
         ),
       ),
@@ -768,7 +791,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  void _showFlowerSelector(String type) {
+  void _showFlowerSelector(String type, AppTranslations t) {
     showModalBottomSheet(
       context: context,
       builder: (context) => Container(
@@ -778,7 +801,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              type == 'include' ? 'Flowers to include' : 'Flowers to avoid',
+              type == 'include' ? t('flowers_to_include') : t('flowers_to_avoid'),
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),

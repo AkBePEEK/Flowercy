@@ -8,6 +8,7 @@ import '../../services/language_service.dart';
 import '../../services/notificationService.dart';
 import '../../services/orderService.dart';
 import '../../services/userService.dart';
+import '../../services/paymentService.dart'; // ✅ Импортируем сервис оплаты
 import '../savedAddresses.dart';
 import 'courierComment.dart';
 import 'orderInProgress.dart';
@@ -35,6 +36,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
   String _recipientName = '';
   String _apartmentDetails = '';
   bool _isLoading = true;
+  bool _isPlacingOrder = false;
+
+  final PaymentService _paymentService = PaymentService(); // ✅ Инициализируем сервис
 
   @override
   void initState() {
@@ -92,7 +96,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
           controller: controller,
           autofocus: true,
           decoration: InputDecoration(
-            hintText: t('enter_email_hint'), // Reuse or use generic hint
+            hintText: t('enter_email_hint'),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
@@ -111,44 +115,58 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
+  // ✅ Подсчёт итоговой суммы с учетом доставки
+  int _calculateFinalTotal(List<Map<String, dynamic>> deliveryOptions) {
+    final deliveryPrice = deliveryOptions[_selectedDeliveryIndex]['priceValue'] as int;
+    return widget.total + deliveryPrice;
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = getTranslations();
     
     // Данные доставки
-    final List<Map<String, String>> _deliveryOptions = [
+    final List<Map<String, dynamic>> deliveryOptions = [
       {
         'title': t('faster_delivery'),
         'subtitle': t('delivery_time_subtitle'),
-        'price': 'Free',
+        'price': '0 ₸',
+        'priceValue': 0,
       },
       {
         'title': t('another_time'),
         'subtitle': t('choose_date_time'),
-        'price': '',
+        'price': '500 ₸',
+        'priceValue': 500,
       },
       {
-        'title': t('faster_delivery'),
-        'subtitle': t('delivery_time_subtitle'),
-        'price': 'Free',
+        'title': t('express_delivery'),
+        'subtitle': 'в течение 30 мин.',
+        'price': '1500 ₸',
+        'priceValue': 1500,
       },
     ];
 
     // Данные оплаты
-    final List<Map<String, String>> _paymentOptions = [
+    final List<Map<String, dynamic>> paymentOptions = [
       {
         'title': t('bank_card'),
         'subtitle': t('pay_now'),
+        'method': PaymentMethod.card,
       },
       {
         'title': 'Kaspi.kz',
         'subtitle': t('pay_now'),
+        'method': PaymentMethod.kaspi,
       },
       {
         'title': t('upon_receipt'),
         'subtitle': t('payment_receipt'),
+        'method': PaymentMethod.cash,
       },
     ];
+
+    final int finalTotal = _calculateFinalTotal(deliveryOptions);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -171,28 +189,39 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       ),
       body: _isLoading 
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildInfoSection(t),
-                  const SizedBox(height: 24),
-                  _buildDeliverySection(t, _deliveryOptions),
-                  const SizedBox(height: 24),
-                  _buildImportantDetailsSection(t),
-                  const SizedBox(height: 24),
-                  _buildPaymentSection(t, _paymentOptions),
-                  const SizedBox(height: 100),
-                ],
-              ),
+          : Stack(
+              children: [
+                Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildInfoSection(t),
+                            const SizedBox(height: 24),
+                            _buildDeliverySection(t, deliveryOptions),
+                            const SizedBox(height: 24),
+                            _buildImportantDetailsSection(t),
+                            const SizedBox(height: 24),
+                            _buildPaymentSection(t, paymentOptions),
+                            const SizedBox(height: 120),
+                          ],
+                        ),
+                      ),
+                    ),
+                    _buildBottomSection(context, t, deliveryOptions, paymentOptions, finalTotal),
+                  ],
+                ),
+                if (_isPlacingOrder)
+                  Container(
+                    color: Colors.black26,
+                    child: const Center(
+                      child: CircularProgressIndicator(color: Color(0xFFB07183)),
+                    ),
+                  ),
+              ],
             ),
-          ),
-          _buildBottomSection(context, t, _deliveryOptions, _paymentOptions),
-        ],
-      ),
     );
   }
 
@@ -266,7 +295,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-// Метод для показа модального окна комментария
   void _showCourierComment() async {
     final result = await showModalBottomSheet<String>(
       context: context,
@@ -282,8 +310,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     }
   }
 
-  // ✅ Доставка с кликабельными элементами
-  Widget _buildDeliverySection(AppTranslations t, List<Map<String, String>> deliveryOptions) {
+  Widget _buildDeliverySection(AppTranslations t, List<Map<String, dynamic>> deliveryOptions) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -465,8 +492,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-  // ✅ Оплата с кликабельными элементами
-  Widget _buildPaymentSection(AppTranslations t, List<Map<String, String>> paymentOptions) {
+  Widget _buildPaymentSection(AppTranslations t, List<Map<String, dynamic>> paymentOptions) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -575,9 +601,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-  bool _isPlacingOrder = false;
-
-  Future<void> _placeOrder(AppTranslations t, List<Map<String, String>> deliveryOptions, List<Map<String, String>> paymentOptions) async {
+  Future<void> _placeOrder(AppTranslations t, List<Map<String, dynamic>> deliveryOptions, List<Map<String, dynamic>> paymentOptions, int finalTotal) async {
     if (_selectedAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(t('addAddress')), backgroundColor: Colors.orange),
@@ -598,6 +622,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
 
+      // ✅ 1. Обработка платежа
+      final paymentMethod = paymentOptions[_selectedPaymentIndex]['method'] as PaymentMethod;
+      final paymentResult = await _paymentService.processPayment(
+        method: paymentMethod,
+        amount: finalTotal,
+      );
+
+      if (!paymentResult.success) {
+        throw Exception(paymentResult.message ?? t('general_error'));
+      }
+
+      // ✅ 2. Создание заказа
       final order = Order(
         id: '',
         userId: userId,
@@ -608,7 +644,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
           quantity: item.quantity,
           image: item.image,
         )).toList(),
-        total: widget.total,
+        total: finalTotal,
         status: 'placed',
         recipient: _recipientName,
         address: _selectedAddress!.street,
@@ -645,7 +681,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       print('❌ Error placing order: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(t('failed_to_place_order')),
+          content: Text(e.toString().replaceAll('Exception: ', '')),
           backgroundColor: Colors.red,
         ),
       );
@@ -654,7 +690,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     }
   }
 
-  Widget _buildBottomSection(BuildContext context, AppTranslations t, List<Map<String, String>> deliveryOptions, List<Map<String, String>> paymentOptions) {
+  Widget _buildBottomSection(BuildContext context, AppTranslations t, List<Map<String, dynamic>> deliveryOptions, List<Map<String, dynamic>> paymentOptions, int finalTotal) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -672,7 +708,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
               children: [
                 Text(
                   t('total'),
@@ -682,7 +717,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                   ),
                 ),
                 Text(
-                  '${widget.total} ₸', // Make total dynamic
+                  '$finalTotal ₸',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -690,11 +725,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                 ),
               ],
             ),
-
             const SizedBox(height: 16),
-
             ElevatedButton(
-              onPressed: _isPlacingOrder ? null : () => _placeOrder(t, deliveryOptions, paymentOptions),
+              onPressed: _isPlacingOrder ? null : () => _placeOrder(t, deliveryOptions, paymentOptions, finalTotal),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB07183),
                 foregroundColor: Colors.white,
@@ -704,14 +737,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
               ),
               child: _isPlacingOrder
                   ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-              )
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
                   : Text(
-                '${t('payOrder')}  ${widget.total} ₸', // ← динамическая цена
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
+                      '${t('payOrder')}  $finalTotal ₸',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
             ),
           ],
         ),

@@ -1,12 +1,14 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flowery_app/screens/navigationBar/search.dart';
 import 'package:flutter/material.dart';
 import '../main.dart';
+import '../models/user.dart';
 import '../services/language_service.dart';
+import '../services/userService.dart';
 import 'navigationBar/cart.dart';
 import 'navigationBar/favorite.dart';
 import 'navigationBar/home.dart';
 import 'navigationBar/profile.dart';
-// Импортируйте другие экраны когда создадите их
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -30,6 +32,28 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     appLanguageNotifier.addListener(_onLanguageChanged);
+    _checkRoleMigration();
+  }
+
+  // ✅ Миграция со старого поля isAdmin на новую систему ролей
+  Future<void> _checkRoleMigration() async {
+    try {
+      final userService = UserService();
+      final userId = userService.currentUserId;
+      if (userId == null) return;
+
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data();
+        // Если есть старое поле isAdmin: true, но нет поля role — ставим admin
+        if (data != null && data['isAdmin'] == true && data['role'] == null) {
+          await userService.updateUserRole(userId, UserRole.admin);
+          print('✅ User $userId migrated to Admin role');
+        }
+      }
+    } catch (e) {
+      print('❌ Migration error: $e');
+    }
   }
 
   @override
