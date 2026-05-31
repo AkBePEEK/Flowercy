@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:convert'; // ✅ Добавлено для декодирования base64
 
 import '../../services/aiFloristService.dart';
+import '../../models/api/product_card.dart'; // ✅ Добавлено
+import '../../models/api/user_preferences.dart'; // ✅ Добавлено
 // ... (rest of imports)
 import '../../services/userService.dart';
 import '../../services/language_service.dart';
@@ -32,7 +34,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
 
   // Генерация
   bool _isGenerating = false;
-  List<Map<String, dynamic>> _generatedBouquets = [];
+  List<ProductCard> _generatedBouquets = []; // ✅ Изменено на ProductCard
 
   // Статические списки ключей для перевода
   final List<String> _occasionKeys = ['birthday', 'anniversary', 'valentines_day', 'march_8th', 'thank_you', 'congratulations'];
@@ -72,16 +74,16 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
       final result = await AIFloristService().nlpParse(_nlpController.text);
       if (!mounted) return;
       setState(() {
-        if (result['occasion'] != null) {
-          final occasion = result['occasion'].toString().toLowerCase();
+        if (result.occasion != null) {
+          final occasion = result.occasion!.toLowerCase();
           _selectedOccasionKey = _occasionKeys.contains(occasion) ? occasion : _occasionKeys.first;
         }
-        if (result['colors'] != null) {
-           _selectedColorKeys = List<String>.from(result['colors']).map((c) => c.toLowerCase()).toList();
+        if (result.colors != null) {
+           _selectedColorKeys = result.colors!.map((c) => c.toLowerCase()).toList();
         }
-        if (result['flowers_include'] != null) _flowersToInclude = List<String>.from(result['flowers_include']);
-        if (result['flowers_avoid'] != null) _flowersToAvoid = List<String>.from(result['flowers_avoid']);
-        if (result['budget_max'] != null) _budgetToController.text = result['budget_max'].toString();
+        if (result.flowersInclude != null) _flowersToInclude = result.flowersInclude!;
+        if (result.flowersAvoid != null) _flowersToAvoid = result.flowersAvoid!;
+        if (result.budgetMax != null) _budgetToController.text = result.budgetMax!.toInt().toString();
         _isGenerating = false;
       });
     } catch (e) {
@@ -130,7 +132,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
     }
   }
 
-  Future<void> _sendToFlorist(Map<String, dynamic> bouquet) async {
+  Future<void> _sendToFlorist(ProductCard bouquet) async {
     final t = getTranslations();
     final userService = UserService();
     final user = await userService.getCurrentUser();
@@ -152,10 +154,10 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
         userId: user.id,
         userName: user.name ?? user.email.split('@').first,
         userPhone: user.phone ?? '',
-        bouquetName: bouquet['name'] ?? 'AI Bouquet',
-        flowers: bouquet['flowers'] ?? '',
-        price: bouquet['price'] ?? 0,
-        image: bouquet['catalog_image'],
+        bouquetName: bouquet.name,
+        flowers: bouquet.description ?? '', // Using description as fallback for flowers string
+        price: bouquet.price.toInt(),
+        image: bouquet.imageUrl,
         createdAt: DateTime.now(),
       );
 
@@ -175,7 +177,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
     }
   }
 
-  void _showSuccessSheet(Map<String, dynamic> bouquet, AppTranslations t) {
+  void _showSuccessSheet(ProductCard bouquet, AppTranslations t) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -203,7 +205,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
             ),
             const SizedBox(height: 8),
             Text(
-              '${t('request_sent_desc')} "${bouquet['name'] ?? 'Bouquet'}"',
+              '${t('request_sent_desc')} "${bouquet.name}"',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -548,7 +550,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
     );
   }
 
-  Widget _buildBouquetCard(Map<String, dynamic> bouquet, AppTranslations t) {
+  Widget _buildBouquetCard(ProductCard bouquet, AppTranslations t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -565,10 +567,11 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: _buildImage(bouquet['catalog_image'] ?? bouquet['generated_image'] ?? bouquet['image_base64']),
+            child: _buildImage(bouquet.imageUrl),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -576,11 +579,38 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bouquet['name'] ?? 'Bouquet',
+                  bouquet.name,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
-// ...
-                const SizedBox(height: 10),
+                const SizedBox(height: 4),
+                Text(
+                  '${bouquet.price.toInt()} ₸',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFB07183)),
+                ),
+                if (bouquet.reason != null) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEBF5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.auto_awesome, size: 14, color: Color(0xFFB07183)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            bouquet.reason!,
+                            style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 12),
                 Row(
                   children: [
                     Expanded(
@@ -603,7 +633,8 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
                         height: 36,
                         child: OutlinedButton(
                           onPressed: () {
-                            final flowersString = bouquet['flowers'] as String? ?? '';
+                            // Extract flowers from description or name for 3D composer
+                            final flowersString = bouquet.description ?? '';
                             final flowers = flowersString.split(',').map((s) => s.trim()).toList();
                             Navigator.push(
                               context,
@@ -634,9 +665,42 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
   Widget _buildImage(String? imageData) {
     if (imageData == null || imageData.isEmpty) return _buildImagePlaceholder();
 
+    final String baseUrl = 'http://192.168.1.180:8000'; // Fallback to direct IP
+
     if (imageData.startsWith('http')) {
       return Image.network(
         imageData,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+      );
+    } else if (imageData.startsWith('catalog/') || imageData.startsWith('outputs/')) {
+      // Это изображение из внешнего репозитория (ML сервера)
+      final imageUrl = '$baseUrl/static/$imageData';
+      return Image.network(
+        imageUrl,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Если не удалось загрузить с сервера, пробуем локальный маппинг
+          String assetPath = imageData.replaceFirst('catalog/', 'assets/flowers/products/');
+          
+          return Image.asset(
+            assetPath,
+            width: 100,
+            height: 100,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+          );
+        },
+      );
+    } else if (imageData.contains('.png') || imageData.contains('.jpg')) {
+      // Это локальный ассет
+      String assetPath = imageData;
+      return Image.asset(
+        assetPath,
         width: 100,
         height: 100,
         fit: BoxFit.cover,
@@ -657,7 +721,6 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
           errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
         );
       } catch (e) {
-        print('❌ Error decoding base64 image: $e');
         return _buildImagePlaceholder();
       }
     }
@@ -841,3 +904,4 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
     );
   }
 }
+

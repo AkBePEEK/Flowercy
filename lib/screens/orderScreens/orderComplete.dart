@@ -111,40 +111,62 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
         ? widget.orderNumber
         : (widget.orderId.isNotEmpty ? '№${widget.orderId}' : '№—');
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '${t('order_number_label')} $displayNumber',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+    return StreamBuilder<Order?>(
+      stream: OrderService().getOrderStream(widget.orderId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: AppBar(title: Text('${t('order_number_label')} $displayNumber')),
+            body: const Center(child: CircularProgressIndicator(color: Color(0xFFB07183))),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: AppBar(title: Text('${t('order_number_label')} $displayNumber')),
+            body: _buildErrorState(snapshot.error.toString()),
+          );
+        }
+
+        final order = snapshot.data;
+        if (order == null) {
+          return Scaffold(
+            appBar: AppBar(title: Text('${t('order_number_label')} $displayNumber')),
+            body: Center(child: Text(t('order_not_found'))),
+          );
+        }
+
+        _order = order; // Save for repeat order logic
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              '${t('order_number_label')} $displayNumber',
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            centerTitle: true,
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFB07183)))
-          : _error != null
-          ? _buildErrorState()
-          : _order == null
-          ? Center(child: Text(t('order_not_found')))
-          : _buildContent(),
+          body: _buildContent(order),
+        );
+      },
     );
   }
 
   // ── Контент ──────────────────────────────────────────────────
 
-  Widget _buildContent() {
+  Widget _buildContent(Order order) {
     final t = getTranslations();
-    final order = _order!;
 
     return Column(
       children: [
@@ -410,7 +432,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
 
   // ── Экран ошибки ──────────────────────────────────────────────
 
-  Widget _buildErrorState() {
+  Widget _buildErrorState(String error) {
     final t = getTranslations();
     return Center(
       child: Column(
@@ -418,10 +440,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
         children: [
           const Icon(Icons.error_outline, size: 64, color: Colors.red),
           const SizedBox(height: 16),
-          Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 16)),
+          Text(error, style: const TextStyle(color: Colors.red, fontSize: 16)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: _loadOrder,
+            onPressed: () => setState(() {}), // Trigger rebuild
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFB07183),
             ),

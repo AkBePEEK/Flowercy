@@ -1,23 +1,23 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'api/api_client.dart';
+import '../models/api/user_preferences.dart';
+import '../models/api/product_card.dart';
 
 class AIFloristService {
-  final http.Client _client;
+  final ApiClient _apiClient;
 
-  AIFloristService({http.Client? client}) : _client = client ?? http.Client();
+  AIFloristService({ApiClient? apiClient}) 
+      : _apiClient = apiClient ?? ApiClient(Dio());
 
-  // Автоматический выбор хоста
-  String get _baseUrl {
-    // 192.168.1.176 — твой локальный IP, самый надежный способ для тестов
-    return 'http://192.168.1.176:8000';
-  }
+  String get baseUrl => 'http://192.168.1.180:8000';
 
   // Проверка связи с сервером
   Future<bool> checkConnection() async {
     try {
-      print('🔍 Checking connection to $_baseUrl/health...');
-      final response = await _client.get(Uri.parse('$_baseUrl/health')).timeout(const Duration(seconds: 5));
-      return response.statusCode == 200;
+      print('🔍 Checking connection...');
+      // We can use a simple get list or health check if added to ApiClient
+      await getSupportedFlowers();
+      return true;
     } catch (e) {
       print('❌ Health check failed: $e');
       return false;
@@ -25,7 +25,7 @@ class AIFloristService {
   }
 
   // 1. Рекомендации по параметрам
-  Future<List<Map<String, dynamic>>> recommend({
+  Future<List<ProductCard>> recommend({
     required String occasion,
     required List<String> colors,
     required List<String> flowersInclude,
@@ -37,30 +37,21 @@ class AIFloristService {
     bool includeExternal = false,
   }) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$_baseUrl/recommend'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'user_id': userId,
-          'occasion': occasion,
-          'colors': colors,
-          'mood': mood ?? '',
-          'size': size ?? 'M',
-          'flowers_include': flowersInclude,
-          'flowers_avoid': flowersAvoid,
-          'budget_max': budgetMax ?? 50000,
-          'top_n': 5,
-          'include_external': includeExternal,
-        }),
-      ).timeout(const Duration(seconds: 30));
+      final preferences = UserPreferences(
+        userId: userId,
+        occasion: occasion,
+        colors: colors,
+        mood: mood,
+        size: size ?? 'M',
+        flowersInclude: flowersInclude,
+        flowersAvoid: flowersAvoid,
+        budgetMax: budgetMax?.toDouble() ?? 50000.0,
+        topN: 5,
+        includeExternal: includeExternal,
+      );
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return List<Map<String, dynamic>>.from(data['bouquets'] ?? []);
-      } else {
-        print('❌ ML Server error: ${response.statusCode} - ${response.body}');
-        throw Exception('Server returned ${response.statusCode}');
-      }
+      final response = await _apiClient.getRecommendations(preferences);
+      return response.results ?? response.bouquets ?? [];
     } catch (e) {
       print('❌ Network error in recommend: $e');
       rethrow;
@@ -68,127 +59,119 @@ class AIFloristService {
   }
 
 
-  // 2. Рекомендации по тексту (уже было)
-  Future<List<Map<String, dynamic>>> recommendFromText(String query) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/ai/recommend-from-text'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
+  // 2. Рекомендации по тексту
+  Future<List<ProductCard>> recommendFromText(String query, {String userId = 'guest'}) async {
+    try {
+      final response = await _apiClient.recommendFromText({
         'query': query,
         'top_n': 3,
+        'user_id': userId,
         'city': 'Astana',
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data['results'] ?? []);
+      });
+      
+      return response.results ?? response.bouquets ?? [];
+    } catch (e) {
+      print('❌ Error in recommendFromText: $e');
+      throw Exception('Failed to get AI recommendations');
     }
-    throw Exception('Failed to get AI recommendations');
   }
 
-  // 3. Генерация изображения (уже было)
+  // 3. Генерация изображения
   Future<String?> generateImage({
     required List<String> flowers,
     required List<String> colors,
     String? mood,
     String? occasion,
   }) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/generate-image'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
+    try {
+      final response = await _apiClient.generateImage({
         'flowers': flowers,
         'colors': colors,
         'mood': mood ?? '',
         'occasion': occasion ?? '',
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['image_base64'];
+      });
+      return response.imageBase64;
+    } catch (e) {
+      print('❌ Error in generateImage: $e');
+      return null;
     }
-    return null;
   }
 
-  // 4. НОВОЕ: Парсинг текстового описания в структуру
-  Future<Map<String, dynamic>> nlpParse(String text) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/nlp/parse'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'text': text}),
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+  // 4. Парсинг текстового описания в структуру
+  Future<UserPreferences> nlpParse(String text) async {
+    try {
+      return await _apiClient.nlpParse({'text': text});
+    } catch (e) {
+      print('❌ Error in nlpParse: $e');
+      throw Exception('Failed to parse description');
     }
-    throw Exception('Failed to parse description');
   }
 
-  // 5. НОВОЕ: Получение 3D структуры букета
+  // 5. Получение 3D структуры букета
   Future<Map<String, dynamic>> get3DStructure(List<String> flowers, {int count = 30}) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/bouquets/3d-structure'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
+    try {
+      final response = await _apiClient.get3DStructure({
         'flowers': flowers,
         'count': count,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      });
+      return {
+        'coordinates': response.coordinates,
+        'total_count': response.totalCount,
+      };
+    } catch (e) {
+      print('❌ Error in get3DStructure: $e');
+      throw Exception('Failed to get 3D structure');
     }
-    throw Exception('Failed to get 3D structure');
   }
 
-  // 6. НОВОЕ: Автоматическая сборка букета из выбранных цветов
+  // 6. Автоматическая сборка букета из выбранных цветов
   Future<List<Map<String, dynamic>>> composeBouquet({
     required List<Map<String, dynamic>> selections,
     double? budget,
     String? style,
     String? occasion,
   }) async {
-    final response = await _client.post(
-      Uri.parse('$_baseUrl/bouquets/compose'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
+    try {
+      final response = await _apiClient.composeBouquet({
         'selections': selections,
         'budget': budget,
         'style': style,
         'occasion': occasion,
-      }),
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data['variations'] ?? []);
+      });
+      return response.variations ?? [];
+    } catch (e) {
+      print('❌ Error in composeBouquet: $e');
+      throw Exception('Failed to compose bouquet');
     }
-    throw Exception('Failed to compose bouquet');
   }
 
-  // 7. НОВОЕ: Получение списков поддерживаемых параметров
-  Future<List<String>> getSupportedOccasions() async => _getList('/bouquets/occasions');
-  Future<List<String>> getSupportedFlowers() async => _getList('/bouquets/flowers');
-  Future<List<String>> getSupportedMoods() async => _getList('/bouquets/moods');
-  Future<List<String>> getSupportedColors() async => _getList('/bouquets/colors');
+  // 7. Получение списков поддерживаемых параметров
+  Future<List<String>> getSupportedOccasions() async => _getList('/bouquets/occasions', 'occasions');
+  Future<List<String>> getSupportedFlowers() async => _getList('/bouquets/flowers', 'flowers');
+  Future<List<String>> getSupportedMoods() async => _getList('/bouquets/moods', 'moods');
+  Future<List<String>> getSupportedColors() async => _getList('/bouquets/colors', 'colors');
 
-  Future<List<String>> _getList(String path) async {
-    final response = await _client.get(Uri.parse('$_baseUrl$path'));
-    if (response.statusCode == 200) {
-      return List<String>.from(jsonDecode(response.body));
+  Future<List<String>> _getList(String path, String key) async {
+    try {
+      // For now, we use raw Dio or add these to ApiClient if they are frequent
+      final response = await Dio().get('http://192.168.1.180:8000$path');
+      if (response.statusCode == 200) {
+        return List<String>.from(response.data[key] ?? []);
+      }
+    } catch (e) {
+      print('❌ Error fetching $path: $e');
     }
     return [];
   }
 
-  // 8. НОВОЕ: Получение списка цветов для конструктора
+  // 8. Получение списка цветов для конструктора
   Future<List<Map<String, dynamic>>> getCatalogFlowers() async {
-    final response = await _client.get(Uri.parse('$_baseUrl/catalog/flowers'));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data['flowers'] ?? []);
+    try {
+      final response = await _apiClient.getCatalogFlowers();
+      return response.flowers ?? [];
+    } catch (e) {
+      print('❌ Error in getCatalogFlowers: $e');
+      return [];
     }
-    return [];
   }
 }

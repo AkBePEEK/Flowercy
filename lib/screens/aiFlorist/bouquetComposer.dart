@@ -224,9 +224,42 @@ class _BouquetComposerScreenState extends State<BouquetComposerScreen> with Lang
       );
     }
 
+    final String baseUrl = AIFloristService().baseUrl;
+
     if (imageData.startsWith('http')) {
       return Image.network(
         imageData,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+      );
+    } else if (imageData.startsWith('catalog/')) {
+      // Это изображение из внешнего репозитория (ML сервера)
+      final imageUrl = '$baseUrl/static/$imageData';
+      return Image.network(
+        imageUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Если не удалось загрузить с сервера, пробуем локальный маппинг
+          String assetPath = imageData.replaceFirst('catalog/', 'assets/flowers/products/');
+          
+          // Маппинг на существующие ассеты
+          if (assetPath.contains('bright_sunflower_mix')) assetPath = 'assets/flowers/products/bouquet1.png';
+          if (assetPath.contains('wolt_wildflower_mix')) assetPath = 'assets/flowers/products/bouquet2.png';
+          if (assetPath.contains('tender_pink_peonies')) assetPath = 'assets/flowers/products/bouquet3.png';
+          if (assetPath.contains('wolt_exotic_orchid')) assetPath = 'assets/flowers/products/bouquet4.png';
+          
+          return Image.asset(
+            assetPath,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
+          );
+        },
+      );
+    } else if (imageData.contains('.png') || imageData.contains('.jpg')) {
+      // Это локальный ассет
+      String assetPath = imageData;
+      return Image.asset(
+        assetPath,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
       );

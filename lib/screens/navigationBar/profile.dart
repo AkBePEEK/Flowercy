@@ -252,6 +252,7 @@ class _ProfileScreenState extends State<ProfileScreen> with LanguageStateMixin{
                 );
               },
             ),
+          const Divider(height: 1, indent: 16),
           _buildMenuItem(
             t.myOrders,
             hasArrow: true,

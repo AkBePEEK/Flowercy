@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class MLMaintenanceService {
   final http.Client _client;
-  static const String _baseUrl = 'http://127.0.0.1:8000';
+  static const String _baseUrl = 'http://192.168.1.180:8000';
 
   MLMaintenanceService({http.Client? client}) : _client = client ?? http.Client();
 

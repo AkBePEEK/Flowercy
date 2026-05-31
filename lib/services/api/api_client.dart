@@ -1,0 +1,50 @@
+import 'package:dio/dio.dart';
+import 'package:retrofit/retrofit.dart';
+import '../../models/api/user_preferences.dart';
+import '../../models/api/product_card.dart';
+import '../../models/api/api_order.dart';
+import '../../models/api/api_responses.dart';
+
+part 'api_client.g.dart';
+
+@RestApi(baseUrl: "http://192.168.1.180:8000") // Using the IP from aiFloristService.dart
+abstract class ApiClient {
+  factory ApiClient(Dio dio, {String baseUrl}) = _ApiClient;
+
+  // A. Recommendations & AI
+  @POST("/recommend")
+  Future<RecommendationResponse> getRecommendations(@Body() UserPreferences preferences);
+
+  @POST("/ai/recommend-from-text")
+  Future<RecommendationResponse> recommendFromText(@Body() Map<String, dynamic> body);
+
+  @POST("/nlp/parse")
+  Future<UserPreferences> nlpParse(@Body() Map<String, String> body);
+
+  // B. Image & 3D Generation
+  @POST("/generate-image")
+  Future<ImageGenerationResponse> generateImage(@Body() Map<String, dynamic> body);
+
+  @POST("/bouquets/3d-structure")
+  Future<ThreeDStructureResponse> get3DStructure(@Body() Map<String, dynamic> body);
+
+  // C. Order Management
+  @POST("/orders")
+  Future<ApiOrder> createOrder(@Body() Map<String, dynamic> body);
+
+  @GET("/orders/{order_id}")
+  Future<ApiOrder> getOrder(@Path("order_id") String orderId);
+
+  @POST("/orders/{order_id}/customer/review")
+  Future<ApiOrder> reviewOrder(@Path("order_id") String orderId, @Body() Map<String, String> body);
+
+  @POST("/orders/{order_id}/payment")
+  Future<ApiOrder> markOrderAsPaid(@Path("order_id") String orderId);
+
+  // D. Flower Catalog
+  @GET("/catalog/flowers")
+  Future<CatalogFlowersResponse> getCatalogFlowers();
+
+  @POST("/bouquets/compose")
+  Future<ComposeBouquetResponse> composeBouquet(@Body() Map<String, dynamic> body);
+}
