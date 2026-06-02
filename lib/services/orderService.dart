@@ -14,7 +14,11 @@ class OrderService {
   OrderService({FirebaseFirestore? firestore, FirebaseAuth? auth, ApiClient? apiClient})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance,
-        _apiClient = apiClient ?? ApiClient(Dio());
+        _apiClient = apiClient ?? ApiClient(Dio(BaseOptions(
+          connectTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 300),
+          headers: {'bypass-tunnel-reminder': 'true'},
+        )));
 
   final String _collection = 'orders';
   final String _requestCollection = 'bouquet_requests';
@@ -113,6 +117,21 @@ class OrderService {
   // ✅ Обновить статус запроса на букет
   Future<void> updateRequestStatus(String requestId, String status) async {
     await _firestore.collection(_requestCollection).doc(requestId).update({'status': status});
+  }
+
+  // ✅ Получить запросы на букеты текущего пользователя
+  Stream<List<BouquetRequest>> getUserBouquetRequestsStream() {
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value([]);
+
+    return _firestore
+        .collection(_requestCollection)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => BouquetRequest.fromFirestore(doc))
+        .toList());
   }
 
   // ✅ Получить все заказы (для админа)

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/language_service.dart';
 import '../orderScreens/orderManagement.dart';
+import 'bouquetRequestManagement.dart';
 import 'productManagement.dart';
 import 'userManagement.dart';
 
@@ -44,6 +45,16 @@ class _AdminPanelScreenState extends State<AdminPanelScreen> with LanguageStateM
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const OrderManagementScreen()),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildAdminCard(
+            context,
+            title: t('bouquet_requests'),
+            icon: Icons.auto_awesome_outlined,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BouquetRequestManagementScreen()),
             ),
           ),
           const SizedBox(height: 12),

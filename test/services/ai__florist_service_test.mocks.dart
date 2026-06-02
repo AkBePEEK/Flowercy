@@ -3,12 +3,11 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i6;
+import 'dart:async' as _i5;
 
-import 'package:flowery_app/models/api/api_order.dart' as _i4;
+import 'package:flowery_app/models/api/api_order.dart' as _i3;
 import 'package:flowery_app/models/api/api_responses.dart' as _i2;
-import 'package:flowery_app/models/api/user_preferences.dart' as _i3;
-import 'package:flowery_app/services/api/api_client.dart' as _i5;
+import 'package:flowery_app/services/api/api_client.dart' as _i4;
 import 'package:mockito/mockito.dart' as _i1;
 
 // ignore_for_file: type=lint
@@ -37,20 +36,9 @@ class _FakeRecommendationResponse_0 extends _i1.SmartFake
         );
 }
 
-class _FakeUserPreferences_1 extends _i1.SmartFake
-    implements _i3.UserPreferences {
-  _FakeUserPreferences_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
-}
-
-class _FakeImageGenerationResponse_2 extends _i1.SmartFake
+class _FakeImageGenerationResponse_1 extends _i1.SmartFake
     implements _i2.ImageGenerationResponse {
-  _FakeImageGenerationResponse_2(
+  _FakeImageGenerationResponse_1(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -59,9 +47,9 @@ class _FakeImageGenerationResponse_2 extends _i1.SmartFake
         );
 }
 
-class _FakeThreeDStructureResponse_3 extends _i1.SmartFake
+class _FakeThreeDStructureResponse_2 extends _i1.SmartFake
     implements _i2.ThreeDStructureResponse {
-  _FakeThreeDStructureResponse_3(
+  _FakeThreeDStructureResponse_2(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -70,8 +58,8 @@ class _FakeThreeDStructureResponse_3 extends _i1.SmartFake
         );
 }
 
-class _FakeApiOrder_4 extends _i1.SmartFake implements _i4.ApiOrder {
-  _FakeApiOrder_4(
+class _FakeApiOrder_3 extends _i1.SmartFake implements _i3.ApiOrder {
+  _FakeApiOrder_3(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -80,9 +68,9 @@ class _FakeApiOrder_4 extends _i1.SmartFake implements _i4.ApiOrder {
         );
 }
 
-class _FakeCatalogFlowersResponse_5 extends _i1.SmartFake
+class _FakeCatalogFlowersResponse_4 extends _i1.SmartFake
     implements _i2.CatalogFlowersResponse {
-  _FakeCatalogFlowersResponse_5(
+  _FakeCatalogFlowersResponse_4(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -91,9 +79,9 @@ class _FakeCatalogFlowersResponse_5 extends _i1.SmartFake
         );
 }
 
-class _FakeComposeBouquetResponse_6 extends _i1.SmartFake
+class _FakeComposeBouquetResponse_5 extends _i1.SmartFake
     implements _i2.ComposeBouquetResponse {
-  _FakeComposeBouquetResponse_6(
+  _FakeComposeBouquetResponse_5(
     Object parent,
     Invocation parentInvocation,
   ) : super(
@@ -105,38 +93,20 @@ class _FakeComposeBouquetResponse_6 extends _i1.SmartFake
 /// A class which mocks [ApiClient].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockApiClient extends _i1.Mock implements _i5.ApiClient {
+class MockApiClient extends _i1.Mock implements _i4.ApiClient {
   MockApiClient() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i6.Future<_i2.RecommendationResponse> getRecommendations(
-          _i3.UserPreferences? preferences) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #getRecommendations,
-          [preferences],
-        ),
-        returnValue: _i6.Future<_i2.RecommendationResponse>.value(
-            _FakeRecommendationResponse_0(
-          this,
-          Invocation.method(
-            #getRecommendations,
-            [preferences],
-          ),
-        )),
-      ) as _i6.Future<_i2.RecommendationResponse>);
-
-  @override
-  _i6.Future<_i2.RecommendationResponse> recommendFromText(
+  _i5.Future<_i2.RecommendationResponse> recommendFromText(
           Map<String, dynamic>? body) =>
       (super.noSuchMethod(
         Invocation.method(
           #recommendFromText,
           [body],
         ),
-        returnValue: _i6.Future<_i2.RecommendationResponse>.value(
+        returnValue: _i5.Future<_i2.RecommendationResponse>.value(
             _FakeRecommendationResponse_0(
           this,
           Invocation.method(
@@ -144,94 +114,77 @@ class MockApiClient extends _i1.Mock implements _i5.ApiClient {
             [body],
           ),
         )),
-      ) as _i6.Future<_i2.RecommendationResponse>);
+      ) as _i5.Future<_i2.RecommendationResponse>);
 
   @override
-  _i6.Future<_i3.UserPreferences> nlpParse(Map<String, String>? body) =>
-      (super.noSuchMethod(
-        Invocation.method(
-          #nlpParse,
-          [body],
-        ),
-        returnValue:
-            _i6.Future<_i3.UserPreferences>.value(_FakeUserPreferences_1(
-          this,
-          Invocation.method(
-            #nlpParse,
-            [body],
-          ),
-        )),
-      ) as _i6.Future<_i3.UserPreferences>);
-
-  @override
-  _i6.Future<_i2.ImageGenerationResponse> generateImage(
+  _i5.Future<_i2.ImageGenerationResponse> generateImage(
           Map<String, dynamic>? body) =>
       (super.noSuchMethod(
         Invocation.method(
           #generateImage,
           [body],
         ),
-        returnValue: _i6.Future<_i2.ImageGenerationResponse>.value(
-            _FakeImageGenerationResponse_2(
+        returnValue: _i5.Future<_i2.ImageGenerationResponse>.value(
+            _FakeImageGenerationResponse_1(
           this,
           Invocation.method(
             #generateImage,
             [body],
           ),
         )),
-      ) as _i6.Future<_i2.ImageGenerationResponse>);
+      ) as _i5.Future<_i2.ImageGenerationResponse>);
 
   @override
-  _i6.Future<_i2.ThreeDStructureResponse> get3DStructure(
+  _i5.Future<_i2.ThreeDStructureResponse> get3DStructure(
           Map<String, dynamic>? body) =>
       (super.noSuchMethod(
         Invocation.method(
           #get3DStructure,
           [body],
         ),
-        returnValue: _i6.Future<_i2.ThreeDStructureResponse>.value(
-            _FakeThreeDStructureResponse_3(
+        returnValue: _i5.Future<_i2.ThreeDStructureResponse>.value(
+            _FakeThreeDStructureResponse_2(
           this,
           Invocation.method(
             #get3DStructure,
             [body],
           ),
         )),
-      ) as _i6.Future<_i2.ThreeDStructureResponse>);
+      ) as _i5.Future<_i2.ThreeDStructureResponse>);
 
   @override
-  _i6.Future<_i4.ApiOrder> createOrder(Map<String, dynamic>? body) =>
+  _i5.Future<_i3.ApiOrder> createOrder(Map<String, dynamic>? body) =>
       (super.noSuchMethod(
         Invocation.method(
           #createOrder,
           [body],
         ),
-        returnValue: _i6.Future<_i4.ApiOrder>.value(_FakeApiOrder_4(
+        returnValue: _i5.Future<_i3.ApiOrder>.value(_FakeApiOrder_3(
           this,
           Invocation.method(
             #createOrder,
             [body],
           ),
         )),
-      ) as _i6.Future<_i4.ApiOrder>);
+      ) as _i5.Future<_i3.ApiOrder>);
 
   @override
-  _i6.Future<_i4.ApiOrder> getOrder(String? orderId) => (super.noSuchMethod(
+  _i5.Future<_i3.ApiOrder> getOrder(String? orderId) => (super.noSuchMethod(
         Invocation.method(
           #getOrder,
           [orderId],
         ),
-        returnValue: _i6.Future<_i4.ApiOrder>.value(_FakeApiOrder_4(
+        returnValue: _i5.Future<_i3.ApiOrder>.value(_FakeApiOrder_3(
           this,
           Invocation.method(
             #getOrder,
             [orderId],
           ),
         )),
-      ) as _i6.Future<_i4.ApiOrder>);
+      ) as _i5.Future<_i3.ApiOrder>);
 
   @override
-  _i6.Future<_i4.ApiOrder> reviewOrder(
+  _i5.Future<_i3.ApiOrder> reviewOrder(
     String? orderId,
     Map<String, String>? body,
   ) =>
@@ -243,7 +196,7 @@ class MockApiClient extends _i1.Mock implements _i5.ApiClient {
             body,
           ],
         ),
-        returnValue: _i6.Future<_i4.ApiOrder>.value(_FakeApiOrder_4(
+        returnValue: _i5.Future<_i3.ApiOrder>.value(_FakeApiOrder_3(
           this,
           Invocation.method(
             #reviewOrder,
@@ -253,56 +206,66 @@ class MockApiClient extends _i1.Mock implements _i5.ApiClient {
             ],
           ),
         )),
-      ) as _i6.Future<_i4.ApiOrder>);
+      ) as _i5.Future<_i3.ApiOrder>);
 
   @override
-  _i6.Future<_i4.ApiOrder> markOrderAsPaid(String? orderId) =>
+  _i5.Future<_i3.ApiOrder> markOrderAsPaid(String? orderId) =>
       (super.noSuchMethod(
         Invocation.method(
           #markOrderAsPaid,
           [orderId],
         ),
-        returnValue: _i6.Future<_i4.ApiOrder>.value(_FakeApiOrder_4(
+        returnValue: _i5.Future<_i3.ApiOrder>.value(_FakeApiOrder_3(
           this,
           Invocation.method(
             #markOrderAsPaid,
             [orderId],
           ),
         )),
-      ) as _i6.Future<_i4.ApiOrder>);
+      ) as _i5.Future<_i3.ApiOrder>);
 
   @override
-  _i6.Future<_i2.CatalogFlowersResponse> getCatalogFlowers() =>
+  _i5.Future<void> checkHealth() => (super.noSuchMethod(
+        Invocation.method(
+          #checkHealth,
+          [],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<_i2.CatalogFlowersResponse> getCatalogFlowers() =>
       (super.noSuchMethod(
         Invocation.method(
           #getCatalogFlowers,
           [],
         ),
-        returnValue: _i6.Future<_i2.CatalogFlowersResponse>.value(
-            _FakeCatalogFlowersResponse_5(
+        returnValue: _i5.Future<_i2.CatalogFlowersResponse>.value(
+            _FakeCatalogFlowersResponse_4(
           this,
           Invocation.method(
             #getCatalogFlowers,
             [],
           ),
         )),
-      ) as _i6.Future<_i2.CatalogFlowersResponse>);
+      ) as _i5.Future<_i2.CatalogFlowersResponse>);
 
   @override
-  _i6.Future<_i2.ComposeBouquetResponse> composeBouquet(
+  _i5.Future<_i2.ComposeBouquetResponse> composeBouquet(
           Map<String, dynamic>? body) =>
       (super.noSuchMethod(
         Invocation.method(
           #composeBouquet,
           [body],
         ),
-        returnValue: _i6.Future<_i2.ComposeBouquetResponse>.value(
-            _FakeComposeBouquetResponse_6(
+        returnValue: _i5.Future<_i2.ComposeBouquetResponse>.value(
+            _FakeComposeBouquetResponse_5(
           this,
           Invocation.method(
             #composeBouquet,
             [body],
           ),
         )),
-      ) as _i6.Future<_i2.ComposeBouquetResponse>);
+      ) as _i5.Future<_i2.ComposeBouquetResponse>);
 }

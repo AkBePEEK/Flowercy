@@ -1,6 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'product_card.dart';
-import 'user_preferences.dart';
 
 part 'api_responses.g.dart';
 

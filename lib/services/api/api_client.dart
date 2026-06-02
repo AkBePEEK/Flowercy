@@ -1,25 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
-import '../../models/api/user_preferences.dart';
-import '../../models/api/product_card.dart';
 import '../../models/api/api_order.dart';
 import '../../models/api/api_responses.dart';
 
+import 'api_config.dart';
+
 part 'api_client.g.dart';
 
-@RestApi(baseUrl: "http://192.168.1.180:8000") // Using the IP from aiFloristService.dart
+@RestApi(baseUrl: ApiConfig.baseUrl)
 abstract class ApiClient {
   factory ApiClient(Dio dio, {String baseUrl}) = _ApiClient;
 
   // A. Recommendations & AI
-  @POST("/recommend")
-  Future<RecommendationResponse> getRecommendations(@Body() UserPreferences preferences);
-
   @POST("/ai/recommend-from-text")
   Future<RecommendationResponse> recommendFromText(@Body() Map<String, dynamic> body);
-
-  @POST("/nlp/parse")
-  Future<UserPreferences> nlpParse(@Body() Map<String, String> body);
 
   // B. Image & 3D Generation
   @POST("/generate-image")
@@ -42,6 +36,9 @@ abstract class ApiClient {
   Future<ApiOrder> markOrderAsPaid(@Path("order_id") String orderId);
 
   // D. Flower Catalog
+  @GET("/health")
+  Future<void> checkHealth();
+
   @GET("/catalog/flowers")
   Future<CatalogFlowersResponse> getCatalogFlowers();
 

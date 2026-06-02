@@ -1,0 +1,19 @@
+[+21114 ms] I/flutter (18361): 🌐 Current API BaseURL: https://large-windows-tap.loca.lt
+[   +1 ms] I/flutter (18361): 🔍 Attempting health check to https://large-windows-tap.loca.lt/catalog/flowers...
+[+2300 ms] I/flutter (18361): ❌ Error in getCatalogFlowers: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
+[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
+[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+[        ] I/flutter (18361): ✅ Connection successful!
+[ +841 ms] I/flutter (18361): 🔄 Retry 1/ 2 after error: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
+[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
+[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+[+5266 ms] I/flutter (18361): 🔄 Retry 2/ 2 after error: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
+[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
+[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+[+5848 ms] I/flutter (18361): ❌ Error in recommendFromText: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
+[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
+[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
+[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.

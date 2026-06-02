@@ -1,28 +1,36 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'api/api_config.dart';
 
 class MLMaintenanceService {
-  final http.Client _client;
-  static const String _baseUrl = 'http://192.168.1.180:8000';
+  final Dio _dio;
+  static String get _baseUrl => ApiConfig.baseUrl;
 
-  MLMaintenanceService({http.Client? client}) : _client = client ?? http.Client();
+  MLMaintenanceService({Dio? dio}) 
+      : _dio = dio ?? Dio(BaseOptions(
+          baseUrl: _baseUrl,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(seconds: 60),
+          headers: {'bypass-tunnel-reminder': 'true'},
+        ));
 
   // 1. Получить датасет для обучения (на основе действий пользователей)
   Future<Map<String, dynamic>> getMLDataset() async {
-    final response = await _client.get(Uri.parse('$_baseUrl/ml/dataset'));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    try {
+      final response = await _dio.get('/ml/dataset');
+      return response.data;
+    } catch (e) {
+      throw Exception('Failed to fetch ML dataset: $e');
     }
-    throw Exception('Failed to fetch ML dataset');
   }
 
   // 2. Запустить переобучение модели
   Future<Map<String, dynamic>> retrainModel() async {
-    final response = await _client.post(Uri.parse('$_baseUrl/ml/retrain'));
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    try {
+      final response = await _dio.post('/ml/retrain');
+      return response.data;
+    } catch (e) {
+      throw Exception('Failed to trigger model retraining: $e');
     }
-    throw Exception('Failed to trigger model retraining');
   }
 
   // 3. Получить логи рекомендаций для анализа
@@ -31,26 +39,24 @@ class MLMaintenanceService {
     String? userId,
     int limit = 100,
   }) async {
-    final queryParams = {
-      if (outcome != null) 'outcome': outcome,
-      if (userId != null) 'user_id': userId,
-      'limit': limit.toString(),
-    };
-    
-    final uri = Uri.parse('$_baseUrl/ml/logs').replace(queryParameters: queryParams);
-    final response = await _client.get(uri);
-    
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return List<Map<String, dynamic>>.from(data['logs'] ?? []);
+    try {
+      final queryParams = {
+        if (outcome != null) 'outcome': outcome,
+        if (userId != null) 'user_id': userId,
+        'limit': limit,
+      };
+      
+      final response = await _dio.get('/ml/logs', queryParameters: queryParams);
+      return List<Map<String, dynamic>>.from(response.data['logs'] ?? []);
+    } catch (e) {
+      throw Exception('Failed to fetch recommendation logs: $e');
     }
-    throw Exception('Failed to fetch recommendation logs');
   }
 
   // 4. Проверка здоровья сервиса
   Future<bool> checkHealth() async {
     try {
-      final response = await _client.get(Uri.parse('$_baseUrl/health'));
+      final response = await _dio.get('/health');
       return response.statusCode == 200;
     } catch (_) {
       return false;
