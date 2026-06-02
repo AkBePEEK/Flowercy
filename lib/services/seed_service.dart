@@ -28,10 +28,12 @@ class SeedService {
   Future<void> _seedShops() async {
     final shops = [
       {
-        'name': 'Цветочный рай',
+        'id': 'lui_buton',
+        'name': 'Lui Buton',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop1.png',
         'rating': 4.8,
         'reviews': 124,
-        'image': 'https://images.unsplash.com/photo-1487530811015-780780169229?w=400',
         'discount': '10% off',
         'freeDelivery': true,
         'address': 'пр. Республики, 12, Астана',
@@ -39,10 +41,38 @@ class SeedService {
         'isOpen': true,
       },
       {
-        'name': 'Bloomy',
+        'id': 'bloom_room',
+        'name': 'Bloom Room',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop2.png',
+        'rating': 4.7,
+        'reviews': 489,
+        'address': 'Астана, ул. Сыганак, 16',
+        'phone': '+7 702 345 67 89',
+        'freeDelivery': true,
+        'isOpen': true,
+        'deliveryTime': 'Today from 18:00',
+      },
+      {
+        'id': 'rose_avenue',
+        'name': 'Rose Avenue',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop3.png',
+        'rating': 4.9,
+        'reviews': 624,
+        'address': 'Астана, пр. Туран, 37',
+        'phone': '+7 705 456 78 90',
+        'freeDelivery': false,
+        'isOpen': true,
+        'deliveryTime': 'Tomorrow from 09:00',
+      },
+      {
+        'id': 'flora_astana',
+        'name': 'Flora Astana',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop4.png',
         'rating': 4.6,
         'reviews': 89,
-        'image': 'https://images.unsplash.com/photo-1490750967868-88df5691cc81?w=400',
         'discount': null,
         'freeDelivery': true,
         'address': 'ул. Кенесары, 40, Астана',
@@ -50,20 +80,56 @@ class SeedService {
         'isOpen': true,
       },
       {
-        'name': 'Rose Garden',
-        'rating': 4.9,
-        'reviews': 210,
-        'image': 'https://images.unsplash.com/photo-1519378058457-4c29a0a2efac?w=400',
+        'id': 'petal_studio',
+        'name': 'Petal Studio',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop5.png',
+        'rating': 4.8,
+        'reviews': 570,
+        'address': 'Астана, ул. Мәңгілік Ел, 29',
+        'phone': '+7 708 567 89 01',
         'discount': '5% off',
         'freeDelivery': false,
-        'address': 'пр. Победы, 78, Астана',
-        'phone': '+7 705 111 22 33',
         'isOpen': true,
+      },
+      {
+        'id': 'tulip_house',
+        'name': 'Tulip House',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop6.png',
+        'rating': 4.7,
+        'reviews': 438,
+        'address': 'Астана, ул. Достык, 12',
+        'phone': '+7 707 678 90 12',
+        'freeDelivery': true,
+        'isOpen': true,
+        'deliveryTime': 'Today from 19:00',
+      },
+      {
+        'id': 'cvetasto',
+        'name': 'Cvetasto',
+        'category': 'flowers',
+        'image': 'assets/flowers/shops/shop7.png',
+        'rating': 4.9,
+        'reviews': 512,
+        'address': 'Астана, пр. Абая, 25',
+        'phone': '+7 700 789 01 23',
+        'freeDelivery': false,
+        'isOpen': true,
+        'deliveryTime': 'Tomorrow from 11:00',
       },
     ];
 
     for (final shop in shops) {
-      await _firestore.collection('shops').add(shop);
+      final id = shop['id'] as String;
+
+      final data = Map<String, dynamic>.from(shop);
+      data.remove('id');
+
+      await _firestore.collection('shops').doc(id).set({
+        ...data,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
     }
     print('✅ Shops seeded');
   }
