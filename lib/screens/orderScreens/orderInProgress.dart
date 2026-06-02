@@ -1,6 +1,7 @@
 import 'package:flowery_app/screens/orderScreens/orderComplete.dart';
 import 'package:flutter/material.dart';
 
+import '../../models/order.dart' as local;
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
 
@@ -23,8 +24,8 @@ class OrderInProgressScreen extends StatefulWidget {
 class _OrderInProgressScreenState extends State<OrderInProgressScreen> with LanguageStateMixin {
   bool _isCancelling = false;
 
-  Map<String, dynamic> _getStatusData(AppTranslations t) {
-    switch (widget.status.toLowerCase()) {
+  Map<String, dynamic> _getStatusData(AppTranslations t, String currentStatus) {
+    switch (currentStatus.toLowerCase()) {
       case 'placed':
         return {'icon': 'assets/orderStatus/placed.png',
           'title': t('order_status_placed'), 'completedSteps': 1};
@@ -37,6 +38,9 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
       case 'delivered':
         return {'icon': 'assets/orderStatus/delivered.png',
           'title': t('order_status_delivered'), 'completedSteps': 4};
+      case 'cancelled':
+        return {'icon': 'assets/orderStatus/placed.png', // Or a dedicated cancelled icon
+          'title': t('order_cancelled_msg'), 'completedSteps': 0};
       default:
         return {'icon': 'assets/orderStatus/placed.png',
           'title': t('order_status_placed'), 'completedSteps': 1};
@@ -136,140 +140,153 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
   @override
   Widget build(BuildContext context) {
     final t = getTranslations();
-    final statusData = _getStatusData(t);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          '${t('order_number_label')} ${widget.orderNumber}',
-          style: const TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
+    return StreamBuilder<local.Order?>(
+      stream: OrderService().getOrderStream(widget.orderId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
+        
+        final order = snapshot.data;
+        final currentStatus = order?.status ?? widget.status;
+        final statusData = _getStatusData(t, currentStatus);
+
+        return Scaffold(
+          backgroundColor: Colors.white,
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              '${t('order_number_label')} ${widget.orderNumber}',
+              style: const TextStyle(
+                color: Colors.black,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            centerTitle: true,
           ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFB07183).withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Image.asset(
-                        statusData['icon'],
-                        color: const Color(0xFFB07183),
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.local_florist,
-                          color: Color(0xFFB07183),
-                          size: 48,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      statusData['title'],
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFFB07183),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 60),
-                    _buildProgressTracker(statusData['completedSteps']),
-                    const SizedBox(height: 60),
-                    // ✅ Support и Details — теперь рабочие
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          body: Column(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
                       children: [
-                        _buildActionButton(
-                          icon: Icons.headset_mic,
-                          label: t('support'),
-                          onTap: _openSupport,
+                        const SizedBox(height: 24),
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFB07183).withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Image.asset(
+                            statusData['icon'],
+                            color: const Color(0xFFB07183),
+                            errorBuilder: (_, __, ___) => const Icon(
+                              Icons.local_florist,
+                              color: Color(0xFFB07183),
+                              size: 48,
+                            ),
+                          ),
                         ),
-                        const SizedBox(width: 16),
-                        _buildActionButton(
-                          icon: Icons.list,
-                          label: t('details'),
-                          onTap: () => Navigator.push(context,
-                            MaterialPageRoute(builder:
-                                (context) => OrderDetailScreen(orderNumber: widget.orderNumber,
-                                orderId: widget.orderId)))
+                        const SizedBox(height: 24),
+                        Text(
+                          statusData['title'],
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFFB07183),
+                          ),
+                          textAlign: TextAlign.center,
                         ),
+                        const SizedBox(height: 60),
+                        _buildProgressTracker(statusData['completedSteps']),
+                        const SizedBox(height: 60),
+                        // ✅ Support и Details — теперь рабочие
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildActionButton(
+                              icon: Icons.headset_mic,
+                              label: t('support'),
+                              onTap: _openSupport,
+                            ),
+                            const SizedBox(width: 16),
+                            _buildActionButton(
+                              icon: Icons.list,
+                              label: t('details'),
+                              onTap: () => Navigator.push(context,
+                                MaterialPageRoute(builder:
+                                    (context) => OrderDetailScreen(orderNumber: widget.orderNumber,
+                                    orderId: widget.orderId)))
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
                       ],
                     ),
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              if (currentStatus.toLowerCase() != 'delivered' && currentStatus.toLowerCase() != 'cancelled')
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: SafeArea(
+                    child: ElevatedButton(
+                      onPressed: _isCancelling ? null : _showCancelDialog,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFB07183),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: _isCancelling
+                          ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                          : Text(
+                        t('cancel'),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          if (widget.status.toLowerCase() != 'delivered' && widget.status.toLowerCase() != 'cancelled')
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
-              child: SafeArea(
-                child: ElevatedButton(
-                  onPressed: _isCancelling ? null : _showCancelDialog,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFB07183),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    minimumSize: const Size(double.infinity, 50),
-                  ),
-                  child: _isCancelling
-                      ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                      : Text(
-                    t('cancel'),
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
+
 
   // ✅ Трекер прогресса с динамическими шагами
   Widget _buildProgressTracker(int completedSteps) {

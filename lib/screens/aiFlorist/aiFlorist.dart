@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 import '../../services/aiFloristService.dart';
+import '../../models/api/product_card.dart';
 import '../../services/userService.dart';
+import '../../services/language_service.dart';
+import '../../services/orderService.dart';
+import '../../models/bouquetRequest.dart';
+
+import '../../services/api/api_config.dart';
 
 class AIFloristScreen extends StatefulWidget {
   const AIFloristScreen({super.key});
@@ -10,41 +17,79 @@ class AIFloristScreen extends StatefulWidget {
   State<AIFloristScreen> createState() => _AIFloristScreenState();
 }
 
-class _AIFloristScreenState extends State<AIFloristScreen> {
+class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMixin {
   int _currentStep = 0; // 0 — параметры, 1 — генерация
 
   // Параметры букета
-  String? _selectedOccasion;
-  List<String> _selectedColors = [];
-  String? _selectedSize;
-  final TextEditingController _budgetFromController = TextEditingController();
+  String? _selectedOccasionKey;
   final TextEditingController _budgetToController = TextEditingController();
-  List<String> _flowersToInclude = [];
-  List<String> _flowersToAvoid = [];
+  final TextEditingController _nlpController = TextEditingController();
+  
+  // Выбранные цветы из каталога
+  final List<Map<String, dynamic>> _selectedCatalogFlowers = [];
+  List<Map<String, dynamic>> _catalogFlowers = [];
+  bool _hasCatalogError = false;
 
   // Генерация
   bool _isGenerating = false;
-  List<Map<String, dynamic>> _generatedBouquets = [];
+  List<ProductCard> _generatedBouquets = [];
 
-  final List<String> _occasions = [
-    'Birthday', 'Anniversary', 'Valentine\'s Day',
-    'March 8th', 'Thank you', 'Congratulations',
-  ];
-  final List<String> _colors = ['Pink', 'Red', 'White', 'Yellow', 'Purple', 'Mixed'];
-  final List<String> _sizes = ['S', 'M', 'L'];
-  final List<String> _allFlowers = [
-    'Roses', 'Tulips', 'Peonies', 'Lilies', 'Daisies',
-    'Orchids', 'Carnations', 'Chrysanthemums', 'Hydrangeas',
-  ];
+  // Статические списки ключей для перевода
+  final List<String> _occasionKeys = ['birthday', 'anniversary', 'valentines_day', 'march_8th', 'thank_you', 'congratulations'];
+  
+  @override
+  void initState() {
+    super.initState();
+    AIFloristService().checkConnection();
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    setState(() {
+      _hasCatalogError = false;
+      _catalogFlowers = [];
+    });
+    try {
+      final flowers = await AIFloristService().getCatalogFlowers();
+      if (mounted) {
+        setState(() {
+          _catalogFlowers = flowers;
+          _hasCatalogError = flowers.isEmpty;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _hasCatalogError = true);
+      }
+    }
+  }
 
   @override
   void dispose() {
-    _budgetFromController.dispose();
     _budgetToController.dispose();
+    _nlpController.dispose();
     super.dispose();
   }
 
   Future<void> _generate() async {
+    final t = getTranslations();
+    
+    // Предварительная проверка связи
+    final isAlive = await AIFloristService().checkConnection();
+    if (!isAlive) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(t('network_error')),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+            action: SnackBarAction(label: t('success'), onPressed: _generate, textColor: Colors.white),
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() {
       _isGenerating = true;
       _currentStep = 1;
@@ -53,26 +98,76 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     try {
       final userId = UserService().currentUserId ?? 'guest';
 
-      final results = await AIFloristService().recommend(
-        occasion: _selectedOccasion ?? 'Birthday',
-        colors: _selectedColors,
-        flowersInclude: _flowersToInclude,
-        flowersAvoid: _flowersToAvoid,
-        size: _selectedSize,
-        budgetMax: int.tryParse(_budgetToController.text),
+      // Формируем детальный запрос на основе выбранных цветов и количеств
+      String flowerQuery = _selectedCatalogFlowers
+          .map((f) => "${f['count']}x ${f['name']}")
+          .join(", ");
+      
+      String query = _nlpController.text;
+      if (query.isEmpty) {
+        query = "Create a bouquet for ${_selectedOccasionKey ?? 'special occasion'}";
+        if (flowerQuery.isNotEmpty) query += " using: $flowerQuery";
+        if (_budgetToController.text.isNotEmpty) query += ". Budget: ${_budgetToController.text} KZT";
+      } else if (flowerQuery.isNotEmpty) {
+        query += ". Please use these specific flowers: $flowerQuery";
+      }
+
+      // Мы всё еще вызываем recommendFromText для логирования предпочтений на бэкенде,
+      // но для отображения используем только сгенерированные нейросетью варианты.
+      await AIFloristService().recommendFromText(
+        query,
         userId: userId,
+        occasion: _selectedOccasionKey,
+        budgetMax: double.tryParse(_budgetToController.text),
+        flowersInclude: _selectedCatalogFlowers.map((f) => f['name'] as String).toList(),
+        topN: 3,
       );
 
+      final List<ProductCard> aiVariations = [];
+
+      // Генерируем 3 варианта через Stable Diffusion для разнообразия
+      for (int i = 0; i < 3; i++) {
+        try {
+          final genResult = await AIFloristService().generateImage(
+            flowers: _selectedCatalogFlowers.isNotEmpty 
+              ? _selectedCatalogFlowers.map((f) => f['name'] as String).toList()
+              : ['rose', 'peony', 'eucalyptus'], // fallback flowers
+            occasion: _selectedOccasionKey,
+          );
+          
+          if (genResult['image_base64'] != null) {
+            aiVariations.add(ProductCard(
+              id: 'generated_${DateTime.now().millisecondsSinceEpoch}_$i',
+              name: '${t('ai_generated_bouquet')} ${i + 1}',
+              price: double.tryParse(_budgetToController.text) ?? 15000,
+              imageUrl: genResult['image_base64'],
+              provider: 'AI Florist',
+              storeId: 'ai_studio',
+              inStock: true,
+              description: query,
+              reason: 'Variation ${i + 1} freshly generated by Stable Diffusion',
+            ));
+          }
+          // Небольшая задержка между запросами, чтобы сервер успел освободить память
+          await Future.delayed(const Duration(milliseconds: 500));
+        } catch (genError) {
+          print('⚠️ Error generating variation $i: $genError');
+        }
+      }
+
       setState(() {
-        _generatedBouquets = results;
+        _generatedBouquets = aiVariations;
         _isGenerating = false;
       });
     } catch (e) {
       setState(() => _isGenerating = false);
       if (mounted) {
+        String errorMsg = e.toString().replaceFirst('Exception: ', '');
+        if (errorMsg.isEmpty || errorMsg.contains('Error')) errorMsg = t('network_error');
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to generate. Check your connection.'),
+          SnackBar(
+            content: Text(errorMsg),
             backgroundColor: Colors.red,
           ),
         );
@@ -80,7 +175,52 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     }
   }
 
-  void _sendToFlorist(Map<String, dynamic> bouquet) {
+  Future<void> _sendToFlorist(ProductCard bouquet) async {
+    final t = getTranslations();
+    final userService = UserService();
+    final user = await userService.getCurrentUser();
+    
+    if (user == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('signIn'))),
+        );
+      }
+      return;
+    }
+
+    setState(() => _isGenerating = true);
+
+    try {
+      final request = BouquetRequest(
+        id: '',
+        userId: user.id,
+        userName: user.name ?? user.email.split('@').first,
+        userPhone: user.phone ?? '',
+        bouquetName: bouquet.name,
+        flowers: bouquet.description ?? '', // Using description as fallback for flowers string
+        price: bouquet.price.toInt(),
+        image: bouquet.imageUrl,
+        createdAt: DateTime.now(),
+      );
+
+      await OrderService().createBouquetRequest(request);
+
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        _showSuccessSheet(bouquet, t);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isGenerating = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${t('error')}: $e')),
+        );
+      }
+    }
+  }
+
+  void _showSuccessSheet(ProductCard bouquet, AppTranslations t) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -102,13 +242,13 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
             const SizedBox(height: 20),
             const Icon(Icons.check_circle, color: Color(0xFFB07183), size: 48),
             const SizedBox(height: 12),
-            const Text(
-              'Request sent!',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+            Text(
+              t('request_sent'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 8),
             Text(
-              'Our florist will contact you shortly to confirm the order for "${bouquet['title']}"',
+              '${t('request_sent_desc')} "${bouquet.name}"',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
@@ -128,7 +268,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Great!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                child: Text(t('success'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -139,6 +279,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final t = getTranslations();
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -154,43 +295,39 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
             }
           },
         ),
-        title: const Text(
-          'AI Bouquet',
-          style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
+        title: Text(
+          t('ai_bouquet'),
+          style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // Индикатор шагов
-          _buildStepIndicator(),
-
+          _buildStepIndicator(t),
           Expanded(
             child: _currentStep == 0
-                ? _buildParametersStep()
-                : _buildGenerationStep(),
+                ? _buildParametersStep(t)
+                : _buildGenerationStep(t),
           ),
-
-          // Кнопка внизу
-          _buildBottomButton(),
+          _buildBottomButton(t),
         ],
       ),
     );
   }
 
-  Widget _buildStepIndicator() {
+  Widget _buildStepIndicator(AppTranslations t) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          _buildStepDot(0, 'Parameters'),
+          _buildStepDot(0, t('occasion')),
           Expanded(
             child: Container(
               height: 2,
               color: _currentStep >= 1 ? const Color(0xFFB07183) : Colors.grey[200],
             ),
           ),
-          _buildStepDot(1, 'Result'),
+          _buildStepDot(1, t('success')),
         ],
       ),
     );
@@ -230,150 +367,20 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildParametersStep() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Customize your bouquet',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Select flowers, occasion and budget',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 24),
-
-          // Occasion
-          _buildSectionTitle('Occasion'),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedOccasion,
-                hint: const Text('Select occasion'),
-                isExpanded: true,
-                items: _occasions.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
-                onChanged: (value) => setState(() => _selectedOccasion = value),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Colors
-          _buildSectionTitle('Colors'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _colors.map((color) {
-              final isSelected = _selectedColors.contains(color);
-              return _buildChip(color, isSelected, () {
-                setState(() {
-                  isSelected ? _selectedColors.remove(color) : _selectedColors.add(color);
-                });
-              });
-            }).toList(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Size
-          _buildSectionTitle('Size'),
-          const SizedBox(height: 8),
-          Row(
-            children: _sizes.map((size) {
-              final isSelected = _selectedSize == size;
-              return Expanded(
-                child: Container(
-                  margin: EdgeInsets.only(right: size == 'L' ? 0 : 8),
-                  child: ElevatedButton(
-                    onPressed: () => setState(() => _selectedSize = size),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isSelected ? const Color(0xFFB07183) : Colors.grey[100],
-                      foregroundColor: isSelected ? Colors.white : Colors.grey[700],
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    child: Text(size),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Budget
-          _buildSectionTitle('Budget (₸)'),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildBudgetField(_budgetFromController, 'From')),
-              const SizedBox(width: 12),
-              Expanded(child: _buildBudgetField(_budgetToController, 'Up to')),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Flowers to include
-          _buildSectionTitle('Flowers to include'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ..._flowersToInclude.map((f) => _buildRemovableChip(f, () {
-                setState(() => _flowersToInclude.remove(f));
-              })),
-              _buildAddChip(() => _showFlowerSelector('include')),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Flowers to avoid
-          _buildSectionTitle('Flowers to avoid'),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              ..._flowersToAvoid.map((f) => _buildRemovableChip(f, () {
-                setState(() => _flowersToAvoid.remove(f));
-              })),
-              _buildAddChip(() => _showFlowerSelector('avoid')),
-            ],
-          ),
-
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGenerationStep() {
-    if (_isGenerating) {
-      return const Center(
+  Widget _buildParametersStep(AppTranslations t) {
+    if (_hasCatalogError) {
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            CircularProgressIndicator(color: Color(0xFFB07183)),
-            SizedBox(height: 16),
-            Text(
-              'Generating your bouquet...',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text(t('network_error'), style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadCatalog,
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB07183)),
+              child: Text(t('success'), style: const TextStyle(color: Colors.white)), // "OK/Retry"
             ),
           ],
         ),
@@ -385,24 +392,182 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Your bouquets',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          Text(
+            t('customize_bouquet'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose the one you like and send it to the florist',
+            t('select_flowers_occasion_budget'),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 24),
+
+          // 1. Выбор цветов из каталога
+          _buildSectionTitle(t('select_flowers')),
+          const SizedBox(height: 12),
+          _catalogFlowers.isEmpty 
+            ? const Center(child: CircularProgressIndicator(color: Color(0xFFB07183)))
+            : Container(
+                height: 250,
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey[200]!),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(12),
+                  itemCount: _catalogFlowers.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final flower = _catalogFlowers[index];
+                    final selectionIdx = _selectedCatalogFlowers.indexWhere((s) => s['id'] == flower['id']);
+                    final count = selectionIdx != -1 ? _selectedCatalogFlowers[selectionIdx]['count'] : 0;
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: _buildImage(flower['image'], size: 40),
+                      ),
+                      title: Text(flower['name'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                      subtitle: Text('${flower['price_per_stem']} ₸', style: const TextStyle(fontSize: 12)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (count > 0) ...[
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, size: 20),
+                              onPressed: () => setState(() {
+                                if (_selectedCatalogFlowers[selectionIdx]['count'] > 1) {
+                                  _selectedCatalogFlowers[selectionIdx]['count']--;
+                                } else {
+                                  _selectedCatalogFlowers.removeAt(selectionIdx);
+                                }
+                              }),
+                            ),
+                            Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline, size: 20, color: Color(0xFFB07183)),
+                            onPressed: () => setState(() {
+                              if (selectionIdx != -1) {
+                                _selectedCatalogFlowers[selectionIdx]['count']++;
+                              } else {
+                                _selectedCatalogFlowers.add({
+                                  'id': flower['id'],
+                                  'name': flower['name'],
+                                  'count': 1,
+                                });
+                              }
+                            }),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          
+          const SizedBox(height: 24),
+
+          // 2. Повод
+          _buildSectionTitle(t('occasion')),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton<String>(
+                value: _selectedOccasionKey,
+                hint: Text(t('select_occasion')),
+                isExpanded: true,
+                items: _occasionKeys.map((key) => DropdownMenuItem(value: key, child: Text(t(key)))).toList(),
+                onChanged: (value) => setState(() => _selectedOccasionKey = value),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // 3. Бюджет
+          _buildSectionTitle('${t('budget')} (₸)'),
+          const SizedBox(height: 8),
+          _buildBudgetField(_budgetToController, t('up_to')),
+
+          const SizedBox(height: 24),
+
+          // 4. Дополнительные пожелания (текст)
+          _buildSectionTitle(t('describe_dream_bouquet')),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: TextField(
+              controller: _nlpController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: t('dream_bouquet_hint'),
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenerationStep(AppTranslations t) {
+    if (_isGenerating) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: Color(0xFFB07183)),
+            const SizedBox(height: 16),
+            Text(
+              t('generating_bouquet'),
+              style: const TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            t('your_bouquets'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            t('choose_and_send'),
             style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 20),
-          ..._generatedBouquets.map((bouquet) => _buildBouquetCard(bouquet)),
+          ..._generatedBouquets.map((bouquet) => _buildBouquetCard(bouquet, t)),
           const SizedBox(height: 16),
           Center(
             child: GestureDetector(
               onTap: _generate,
-              child: const Text(
-                'Regenerate bouquets',
-                style: TextStyle(
+              child: Text(
+                t('regenerate_bouquets'),
+                style: const TextStyle(
                   fontSize: 14,
                   color: Color(0xFFB07183),
                   fontWeight: FontWeight.w600,
@@ -417,7 +582,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildBouquetCard(Map<String, dynamic> bouquet) {
+  Widget _buildBouquetCard(ProductCard bouquet, AppTranslations t) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -434,19 +599,11 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Изображение из catalog_image URL или заглушка
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: bouquet['catalog_image'] != null && bouquet['catalog_image'].toString().startsWith('http')
-                ? Image.network(
-              bouquet['catalog_image'],
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-            )
-                : _buildImagePlaceholder(),
+            child: _buildImage(bouquet.imageUrl),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -454,47 +611,55 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  bouquet['name'] ?? 'Bouquet',
+                  bouquet.name,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${bouquet['flowers'] ?? ''} • ${bouquet['mood'] ?? ''}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  '${bouquet.price.toInt()} ₸',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Color(0xFFB07183)),
                 ),
-                const SizedBox(height: 4),
-                if (bouquet['style_tag'] != null)
+                if (bouquet.reason != null) ...[
+                  const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB07183).withValues(alpha: 0.1),
+                      color: const Color(0xFFFFEBF5),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text(
-                      bouquet['style_tag'],
-                      style: const TextStyle(fontSize: 11, color: Color(0xFFB07183)),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.auto_awesome, size: 14, color: Color(0xFFB07183)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            bouquet.reason!,
+                            style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.black87),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                const SizedBox(height: 8),
-                Text(
-                  '${bouquet['price']} ₸',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFFB07183)),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 36,
-                  child: ElevatedButton(
-                    onPressed: () => _sendToFlorist(bouquet),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFB07183),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: ElevatedButton(
+                          onPressed: () => _sendToFlorist(bouquet),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFB07183),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          child: Text(t('send'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
                     ),
-                    child: const Text('Send to florist', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -504,19 +669,75 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
     );
   }
 
-  Widget _buildImagePlaceholder() {
+  Widget _buildImage(String? imageData, {double size = 100}) {
+    if (imageData == null || imageData.isEmpty) return _buildImagePlaceholder(size);
+
+    final String baseUrl = ApiConfig.baseUrl;
+
+    if (imageData.startsWith('http')) {
+      return Image.network(
+        imageData,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildImagePlaceholder(size),
+      );
+    } else if (imageData.startsWith('catalog/') || imageData.startsWith('outputs/')) {
+      final imageUrl = '$baseUrl/static/$imageData';
+      return Image.network(
+        imageUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          String assetPath = imageData.replaceFirst('catalog/', 'assets/flowers/products/');
+          return Image.asset(
+            assetPath,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildImagePlaceholder(size),
+          );
+        },
+      );
+    } else if (imageData.contains('.png') || imageData.contains('.jpg')) {
+      return Image.asset(
+        imageData,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _buildImagePlaceholder(size),
+      );
+    } else {
+      try {
+        String base64Str = imageData;
+        if (base64Str.contains(',')) base64Str = base64Str.split(',').last;
+        return Image.memory(
+          base64Decode(base64Str),
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildImagePlaceholder(size),
+        );
+      } catch (e) {
+        return _buildImagePlaceholder(size);
+      }
+    }
+  }
+
+  Widget _buildImagePlaceholder(double size) {
     return Container(
-      width: 100,
-      height: 100,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: const Color(0xFFFFEBF5),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Icon(Icons.local_florist, color: Color(0xFFB07183), size: 40),
+      child: Icon(Icons.local_florist, color: const Color(0xFFB07183), size: size * 0.4),
     );
   }
 
-  Widget _buildBottomButton() {
+  Widget _buildBottomButton(AppTranslations t) {
     if (_currentStep == 1 || _isGenerating) return const SizedBox.shrink();
 
     return Container(
@@ -542,7 +763,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Generate bouquet', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            child: Text(t('generate_bouquet_btn'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
           ),
         ),
       ),
@@ -551,63 +772,6 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
 
   Widget _buildSectionTitle(String title) {
     return Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87));
-  }
-
-  Widget _buildChip(String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFB07183) : Colors.grey[100],
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isSelected ? Colors.white : Colors.grey[700]),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRemovableChip(String label, VoidCallback onRemove) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFB07183).withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFFB07183))),
-          const SizedBox(width: 6),
-          GestureDetector(onTap: onRemove, child: const Icon(Icons.close, size: 14, color: Color(0xFFB07183))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAddChip(VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[300]!),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add, size: 14, color: Colors.grey),
-            SizedBox(width: 4),
-            Text('Add', style: TextStyle(fontSize: 13, color: Colors.grey)),
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildBudgetField(TextEditingController controller, String hint) {
@@ -626,56 +790,6 @@ class _AIFloristScreenState extends State<AIFloristScreen> {
           hintStyle: TextStyle(color: Colors.grey[500]),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 14),
-        ),
-      ),
-    );
-  }
-
-  void _showFlowerSelector(String type) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              type == 'include' ? 'Flowers to include' : 'Flowers to avoid',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _allFlowers.map((flower) {
-                final isInList = type == 'include' ? _flowersToInclude.contains(flower) : _flowersToAvoid.contains(flower);
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (type == 'include') {
-                        if (!isInList) _flowersToInclude.add(flower);
-                      } else {
-                        if (!isInList) _flowersToAvoid.add(flower);
-                      }
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isInList ? const Color(0xFFB07183) : Colors.grey[100],
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      flower,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: isInList ? Colors.white : Colors.grey[700]),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
         ),
       ),
     );

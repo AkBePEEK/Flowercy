@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'address.dart';
 import 'cartItem.dart';
 
+enum UserRole { user, admin, superAdmin }
+
 class User {
   final String id;
   final String email;
@@ -20,6 +22,10 @@ class User {
   final DateTime createdAt;
   final DateTime? updatedAt;
   final bool isActive;
+  final UserRole role; // ✅ Роль пользователя
+
+  bool get isAdmin => role == UserRole.admin || role == UserRole.superAdmin;
+  bool get isSuperAdmin => role == UserRole.superAdmin;
 
   User({
     required this.id,
@@ -35,6 +41,7 @@ class User {
     required this.createdAt,
     this.updatedAt,
     this.isActive = true,
+    this.role = UserRole.user,
   });
 
   factory User.fromFirestore(DocumentSnapshot doc) {
@@ -58,7 +65,16 @@ class User {
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
       isActive: data['isActive'] ?? true,
+      role: _roleFromString(data['role']),
     );
+  }
+
+  static UserRole _roleFromString(String? role) {
+    switch (role) {
+      case 'admin': return UserRole.admin;
+      case 'superAdmin': return UserRole.superAdmin;
+      default: return UserRole.user;
+    }
   }
 
   Map<String, dynamic> toFirestore() {
@@ -78,6 +94,7 @@ class User {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
       'isActive': isActive,
+      'role': role.name,
     };
   }
 

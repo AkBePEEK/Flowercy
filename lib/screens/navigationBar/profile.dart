@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import '../../main.dart';
 import '../../services/language_service.dart';
 import '../../services/userService.dart';
+import '../admin/adminPanel.dart';
 import '../notificationsScreen.dart';
 import '../orderScreens/myOrder.dart';
 import '../../models/user.dart'; // Ваша модель
@@ -232,10 +233,26 @@ class _ProfileScreenState extends State<ProfileScreen> with LanguageStateMixin{
   // Меню
   Widget _buildMenuSection() {
     final t = getTranslations();
+    final bool isAdmin = _firestoreUser?.isAdmin ?? false;
+
     return Container(
       color: Colors.white,
       child: Column(
         children: [
+          if (isAdmin)
+            _buildMenuItem(
+              t('admin_panel'),
+              hasArrow: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminPanelScreen(),
+                  ),
+                );
+              },
+            ),
+          const Divider(height: 1, indent: 16),
           _buildMenuItem(
             t.myOrders,
             hasArrow: true,
