@@ -7,6 +7,7 @@ import '../admin/adminPanel.dart';
 import '../notificationsScreen.dart';
 import '../orderScreens/myOrder.dart';
 import '../../models/user.dart'; // Ваша модель
+import '../aboutUsScreen.dart';
 import '../savedAddresses.dart';
 import '../authorizationScreens/signIn.dart';
 
@@ -303,8 +304,10 @@ class _ProfileScreenState extends State<ProfileScreen> with LanguageStateMixin{
             t('about_us'),
             hasArrow: true,
             onTap: () {
-              // 🔹 Показать информацию о приложении
-              _showAboutDialog();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+              );
             },
           ),
         ],

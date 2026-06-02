@@ -40,10 +40,6 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min, // ВАЖНО!
                     children: [
-                      // Категории
-                      _buildCategories(context),
-                      const SizedBox(height: 20),
-
                       // Карточки AI Florist и Bouquet crafting
                       _buildFeatureCards(context),
                       const SizedBox(height: 20),
@@ -79,14 +75,7 @@ class HomeScreen extends StatelessWidget {
         children: [
           _buildCategoryItem(t('flowers'), 'flowers', Colors.purple[100]!,
               'assets/flowers/homeScreen/flowersCategories.png', context),
-          _buildCategoryItem(t('sweets'), 'sweets', Colors.pink[100]!,
-              'assets/flowers/homeScreen/sweetsCategories.png', context),
-          _buildCategoryItem(t('plants'), 'plants', Colors.green[100]!,
-              'assets/flowers/homeScreen/plantsCategories.png', context),
-          _buildCategoryItem(t('bears'), 'bears', Colors.blue[100]!,
-              'assets/flowers/homeScreen/bearCategories.png', context),
-          _buildCategoryItem(t('balloons'), 'balloons', Colors.orange[100]!,
-              'assets/flowers/homeScreen/balloonsCategories.png', context),
+          // Остальные категории временно скрыты
         ],
       ),
     );
