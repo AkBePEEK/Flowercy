@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/cartItem.dart';
 import '../../services/language_service.dart';
 import '../../services/userService.dart';
+import '../../widgets/universal_image.dart';
 import '../orderScreens/orderDetails.dart';
 
 class CartScreen extends StatefulWidget {
@@ -19,6 +20,9 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
   List<CartItem> _cartItems = [];
   bool _isLoading = true;
   String? _error;
+  String _sellerComment = '';
+  String _promocode = '';
+  int _discount = 0;
 
   @override
   void initState() {
@@ -65,10 +69,130 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
     _loadCart();
   }
 
+  // ✅ Диалог для добавления комментария продавцу
+  void _editSellerComment() {
+    final t = getTranslations();
+    final controller = TextEditingController(text: _sellerComment);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24), // ✅ Удлиняем по бокам
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), // ✅ Скругляем углы
+        title: Text(t('commentSeller'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width, // ✅ На всю доступную ширину
+          child: TextField(
+            controller: controller,
+            maxLines: 4,
+            decoration: InputDecoration(
+              hintText: t('addComment'),
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t('cancel'), style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _sellerComment = controller.text.trim());
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB07183),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            child: Text(t('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ Диалог для ввода промокода
+  void _editPromocode() {
+    final t = getTranslations();
+    final controller = TextEditingController(text: _promocode);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24), // ✅ Удлиняем по бокам
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(t('promocode'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          child: TextField(
+            controller: controller,
+            decoration: InputDecoration(
+              hintText: t('usePromocode'),
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(t('cancel'), style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final code = controller.text.trim().toUpperCase();
+              setState(() {
+                _promocode = code;
+                if (code == 'FLOWERY10') {
+                  _discount = (_totalPrice * 0.1).round();
+                } else {
+                  _discount = 0;
+                }
+              });
+              Navigator.pop(context);
+              if (_discount > 0) {
+                _showSnackBar('${t('promocode')} $code ${t('applied')}!');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFB07183),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+            ),
+            child: Text(t('apply')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
+
   // ✅ Подсчёт общей суммы
   int get _totalPrice {
     return _cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
   }
+
+  int get _finalPrice => _totalPrice - _discount;
 
   @override
   Widget build(BuildContext context) {
@@ -109,7 +233,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _loadCart,
+                    onPressed: _editSellerComment,
                     child: Text(t('retry')),
                   ),
                 ],
@@ -201,18 +325,16 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
               color: Colors.grey[300],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: item.image != null
-                ? ClipRRect(
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                item.image!,
+              child: UniversalImage(
+                imagePath: item.image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return const Icon(Icons.local_florist, color: Colors.grey);
                 },
               ),
-            )
-                : const Icon(Icons.local_florist, color: Colors.grey),
+            ),
           ),
           const SizedBox(width: 12),
           // Информация
@@ -241,7 +363,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove, size: 16),
-                            onPressed: () => _updateQuantity(item, item.quantity - 1),
+                            onPressed: () => _editPromocode(),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -258,7 +380,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
                           ),
                           IconButton(
                             icon: const Icon(Icons.add, size: 16),
-                            onPressed: () => _updateQuantity(item, item.quantity + 1),
+                            onPressed: () => _editPromocode(),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -282,7 +404,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
           // ✅ Кнопка удаления
           IconButton(
             icon: const Icon(Icons.close, size: 20, color: Colors.grey),
-            onPressed: () => _removeFromCart(item.productId),
+            onPressed: () => _showSnackBar(item.productId),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
@@ -291,34 +413,54 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
     );
   }
 
-  // Комментарий (без изменений, можно добавить сохранение в будущем)
+  // ✅ Комментарий продавцу
   Widget _buildCommentSection() {
     final t = getTranslations();
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE9ECEC),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            t('commentSeller'),
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          ),
-          Row(
-            children: [
-              Text(
-                t('addComment'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+    return GestureDetector(
+      onTap: _editSellerComment,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9ECEC),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('commentSeller'),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  if (_sellerComment.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        _sellerComment,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
               ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 16),
-            ],
-          ),
-        ],
+            ),
+            Row(
+              children: [
+                Text(
+                  _sellerComment.isEmpty ? t('addComment') : t('edit'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFFB07183)),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, size: 16, color: Color(0xFFB07183)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -397,45 +539,48 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
     );
   }
 
-  // Промокод (можно добавить функционал позже)
+  // ✅ Промокод
   Widget _buildPromocodeSection() {
     final t = getTranslations();
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE9ECEC),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: _editPromocode,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9ECEC),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('promocode'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _promocode.isEmpty ? t('youHavePromocode') : '${t('applied')}: $_promocode',
+                    style: TextStyle(fontSize: 12, color: _promocode.isEmpty ? Colors.grey[600] : Colors.green[700]),
+                  ),
+                ],
+              ),
+            ),
+            Row(
               children: [
                 Text(
-                  t('promocode'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  _promocode.isEmpty ? t('usePromocode') : t('edit'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFFB07183)),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  t('youHavePromocode'),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.chevron_right, size: 16, color: Color(0xFFB07183)),
               ],
             ),
-          ),
-          Row(
-            children: [
-              Text(
-                t('usePromocode'),
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right, size: 16),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -460,6 +605,22 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
               ),
             ],
           ),
+          if (_discount > 0) ...[
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  t('promocode'),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.green),
+                ),
+                Text(
+                  '-$_discount₸',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.green),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -484,7 +645,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
               ),
               Text(
-                '$_totalPrice₸', // ✅ Динамическая сумма
+                '$_finalPrice₸', // ✅ Динамическая сумма со скидкой
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
               ),
             ],
@@ -519,7 +680,8 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
               MaterialPageRoute(
                 builder: (context) => OrderDetailsScreen(
                   cartItems: _cartItems, // ✅ Передаём товары в заказ
-                  total: _totalPrice,    // ✅ Передаём сумму
+                  total: _finalPrice,    // ✅ Передаём сумму со скидкой
+                  sellerComment: _sellerComment.isEmpty ? null : _sellerComment, // ✅ Передаем комментарий
                 ),
               ),
             );

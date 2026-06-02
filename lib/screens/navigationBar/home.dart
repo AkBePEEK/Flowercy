@@ -15,6 +15,7 @@ import '../orderScreens/orderInProgress.dart';
 import '../savedAddresses.dart';
 import '../../models/order.dart';
 import '../../services/orderService.dart';
+import '../../widgets/universal_image.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -431,10 +432,23 @@ class _TopPickCardState extends State<_TopPickCard> with LanguageStateMixin{
 
   Future<void> _loadTopPick() async {
     try {
-      final products = await ProductService().getAllProducts();
+      final productService = ProductService();
+      
+      // Сначала пытаемся загрузить конкретный премиальный букет
+      Product? peonyBouquet = await productService.getProductById('rose_avenue_peony_bridal');
+      
+      if (peonyBouquet != null) {
+        setState(() {
+          _product = peonyBouquet;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // Если его нет, берем самый дорогой из имеющихся (Signature или Bridal)
+      final products = await productService.getAllProducts();
       if (products.isNotEmpty) {
-        // Берём товар с наивысшим рейтингом
-        products.sort((a, b) => b.rating.compareTo(a.rating));
+        products.sort((a, b) => b.price.compareTo(a.price));
         setState(() {
           _product = products.first;
           _isLoading = false;
@@ -484,8 +498,8 @@ class _TopPickCardState extends State<_TopPickCard> with LanguageStateMixin{
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: _product!.images.isNotEmpty
-                  ? Image.network(
-                _product!.images.first,
+                  ? UniversalImage(
+                imagePath: _product!.images.first,
                 width: double.infinity,
                 height: double.infinity,
                 fit: BoxFit.cover,

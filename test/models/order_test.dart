@@ -48,7 +48,7 @@ void main() {
         address: 'Street 1',
         deliveryTime: '10:00',
         payment: 'Card',
-        createdAt: now,
+        createdAt: now, sellerComment: null,
       );
 
       final map = order.toFirestore();
@@ -74,7 +74,7 @@ void main() {
         address: 'Street 1',
         deliveryTime: '10:00',
         payment: 'Card',
-        createdAt: DateTime.now(),
+        createdAt: DateTime.now(), sellerComment: null,
       );
 
       expect(order.formattedTotal, '3500 ₸');

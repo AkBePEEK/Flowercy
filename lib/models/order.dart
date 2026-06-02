@@ -30,7 +30,7 @@ class Order {
     required this.payment,
     this.comment,
     required this.createdAt,
-    this.updatedAt,
+    this.updatedAt, required sellerComment,
   });
 
   // ✅ Из Firestore в объект
@@ -52,7 +52,7 @@ class Order {
       payment: data['payment'] ?? '',
       comment: data['comment'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(), sellerComment: "",
     );
   }
 

@@ -78,7 +78,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
         deliveryTime: _order!.deliveryTime,
         payment: _order!.payment,
         comment: _order!.comment,
-        createdAt: DateTime.now(),
+        createdAt: DateTime.now(), sellerComment: '',
       );
 
       await OrderService().createOrder(newOrder);

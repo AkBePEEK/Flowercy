@@ -6,6 +6,7 @@ import '../../services/language_service.dart';
 import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../../services/userService.dart';
+import '../../widgets/universal_image.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -297,21 +298,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: product.images.isNotEmpty
-                  ? Image.network(
-                product.images.first,
+              child: UniversalImage(
+                imagePath: product.images.isNotEmpty ? product.images.first : null,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return const Icon(Icons.local_florist, color: Colors.grey);
                 },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  );
-                },
-              )
-                  : const Icon(Icons.local_florist, color: Colors.grey),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -404,19 +397,13 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Image.network(
-                shop.image,
+              child: UniversalImage(
+                imagePath: shop.image,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
                     color: Colors.grey[300],
                     child: const Icon(Icons.store, color: Colors.grey),
-                  );
-                },
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return const Center(
-                    child: CircularProgressIndicator(strokeWidth: 2),
                   );
                 },
               ),
