@@ -388,6 +388,12 @@ class SeedFlowerProductsService {
       final data = Map<String, dynamic>.from(product);
       data.remove('id');
 
+      // ✅ Преобразуем 'image' в список 'images' для соответствия модели Product
+      if (data.containsKey('image')) {
+        data['images'] = [data['image']];
+        data.remove('image');
+      }
+
       await _firestore.collection('products').doc(id).set({
         ...data,
         'createdAt': FieldValue.serverTimestamp(),

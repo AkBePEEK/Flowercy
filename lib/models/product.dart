@@ -9,6 +9,7 @@ class Product {
   final List<String> images;
   final String shopId;
   final String category;
+  final String section;
   final double rating;
   final int reviews;
   final String? discount;
@@ -24,6 +25,7 @@ class Product {
     required this.images,
     required this.shopId,
     required this.category,
+    required this.section,
     required this.rating,
     required this.reviews,
     this.discount,
@@ -34,15 +36,25 @@ class Product {
   // ✅ Из Firestore в объект
   factory Product.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    
+    // Поддержка как старого формата 'image', так и нового 'images'
+    List<String> imagesList = [];
+    if (data['images'] != null) {
+      imagesList = List<String>.from(data['images']);
+    } else if (data['image'] != null) {
+      imagesList = [data['image'].toString()];
+    }
+
     return Product(
       id: doc.id,
       name: data['name'] ?? '',
       price: data['price'] ?? 0,
       currency: data['currency'] ?? '₸',
       description: data['description'] ?? '',
-      images: List<String>.from(data['images'] ?? []),
+      images: imagesList,
       shopId: data['shopId'] ?? '',
       category: data['category'] ?? 'flowers',
+      section: data['section'] ?? 'flowers',
       rating: (data['rating'] ?? 0).toDouble(),
       reviews: data['reviews'] ?? 0,
       discount: data['discount'],
@@ -61,6 +73,7 @@ class Product {
       'images': images,
       'shopId': shopId,
       'category': category,
+      'section': section,
       'rating': rating,
       'reviews': reviews,
       'discount': discount,

@@ -20,6 +20,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> with LanguageStat
   late TextEditingController _descriptionController;
   late TextEditingController _imageController;
   late TextEditingController _shopIdController;
+  late TextEditingController _sectionController;
   String _selectedCategory = 'flowers';
 
   final List<String> _categories = ['flowers', 'bouquets', 'gifts', 'plants'];
@@ -32,6 +33,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> with LanguageStat
     _descriptionController = TextEditingController(text: widget.product?.description);
     _imageController = TextEditingController(text: widget.product?.images.join(', '));
     _shopIdController = TextEditingController(text: widget.product?.shopId);
+    _sectionController = TextEditingController(text: widget.product?.section ?? 'flowers');
     if (widget.product != null) {
       _selectedCategory = widget.product!.category;
     }
@@ -44,6 +46,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> with LanguageStat
     _descriptionController.dispose();
     _imageController.dispose();
     _shopIdController.dispose();
+    _sectionController.dispose();
     super.dispose();
   }
 
@@ -61,6 +64,7 @@ class _ProductFormScreenState extends State<ProductFormScreen> with LanguageStat
       images: images,
       shopId: _shopIdController.text,
       category: _selectedCategory,
+      section: _sectionController.text,
       rating: widget.product?.rating ?? 5.0,
       reviews: widget.product?.reviews ?? 0,
     );
@@ -118,6 +122,8 @@ class _ProductFormScreenState extends State<ProductFormScreen> with LanguageStat
             _buildTextField(_priceController, t('price'), keyboardType: TextInputType.number, validator: (v) => int.tryParse(v ?? '') == null ? t('invalid_price') : null),
             const SizedBox(height: 16),
             _buildDropdown(t('category')),
+            const SizedBox(height: 16),
+            _buildTextField(_sectionController, 'Section (e.g. flowers, monobouquets)', validator: (v) => v!.isEmpty ? t('field_required') : null),
             const SizedBox(height: 16),
             _buildTextField(_shopIdController, 'Shop ID', validator: (v) => v!.isEmpty ? t('field_required') : null),
             const SizedBox(height: 16),

@@ -33,7 +33,7 @@ void main() {
         address: 'Test Address',
         deliveryTime: '10:00',
         payment: 'Card',
-        createdAt: DateTime.now(),
+        createdAt: DateTime.now(), sellerComment: null,
       );
 
       final orderId = await orderService.createOrder(order);

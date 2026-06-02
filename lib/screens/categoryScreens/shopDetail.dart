@@ -6,6 +6,7 @@ import '../../services/shopService.dart';
 import '../../services/userService.dart';
 import '../../models/shop.dart';
 import '../../models/product.dart';
+import '../../widgets/universal_image.dart';
 
 class ShopDetailScreen extends StatefulWidget {
   final String shopId;
@@ -149,7 +150,12 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> with LanguageStateM
                         child: _shop!.image.isNotEmpty
                             ? ClipRRect(
                           borderRadius: BorderRadius.circular(50),
-                          child: Image.network(_shop!.image, fit: BoxFit.cover),
+                          child: UniversalImage(
+                            imagePath: _shop!.image,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.store, size: 50, color: Color(0xFFB07183)),
+                          ),
                         )
                             : const Icon(Icons.store, size: 50, color: Color(0xFFB07183)),
                       ),
@@ -344,8 +350,8 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> with LanguageStateM
                 child: ClipRRect(
                   borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                   child: product.images.isNotEmpty
-                      ? Image.network(
-                    product.images.first,
+                      ? UniversalImage(
+                    imagePath: product.images.first,
                     fit: BoxFit.cover,
                     width: double.infinity,
                     errorBuilder: (context, error, stackTrace) => Container(

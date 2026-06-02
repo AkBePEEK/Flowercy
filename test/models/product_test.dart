@@ -14,6 +14,7 @@ void main() {
         'images': ['img1.png'],
         'shopId': 'shop1',
         'category': 'flowers',
+        'section': 'bouquets',
         'rating': 4.5,
         'reviews': 10,
         'freeDelivery': true,
@@ -28,6 +29,7 @@ void main() {
       expect(product.id, 'p123');
       expect(product.name, 'Rose');
       expect(product.price, 1500);
+      expect(product.section, 'bouquets');
       expect(product.rating, 4.5);
       expect(product.freeDelivery, true);
     });
@@ -41,6 +43,7 @@ void main() {
         images: [],
         shopId: 's1',
         category: 'cat',
+        section: 'sec',
         rating: 4.0,
         reviews: 5,
       );
@@ -49,12 +52,13 @@ void main() {
 
       expect(map['name'], 'Rose');
       expect(map['price'], 1500);
+      expect(map['section'], 'sec');
       expect(map['rating'], 4.0);
     });
 
     test('formattedPrice should return a correct string', () {
       final product = Product(
-        id: 'p1', name: 'N', price: 1000, currency: '\$', description: '', images: [], shopId: '', category: '', rating: 0, reviews: 0
+        id: 'p1', name: 'N', price: 1000, currency: '\$', description: '', images: [], shopId: '', category: '', section: '', rating: 0, reviews: 0
       );
       expect(product.formattedPrice, '1000 \$');
     });

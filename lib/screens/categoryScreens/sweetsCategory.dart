@@ -7,6 +7,7 @@ import '../mainScreen.dart';
 import '../../widgets/flowerCatalogHeader.dart';
 import '../../models/product.dart';
 import '../../models/shop.dart';
+import '../../widgets/universal_image.dart';
 
 class SweetsCategoryScreen extends StatefulWidget {
   const SweetsCategoryScreen({super.key});
@@ -116,18 +117,11 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
     });
 
     try {
-      // Загружаем товары по категории
-      final products = await _productService
-          .getProductsByCategory(_selectedCategory.toLowerCase());
+      // Всегда загружаем все сладости основной категории 'sweets'
+      final products = await _productService.getProductsByCategory('sweets');
 
-      // Группируем товары по магазинам
-      final shopIds = products.map((p) => p.shopId).toSet();
-      final shops = <Shop>[];
-
-      for (var shopId in shopIds) {
-        final shop = await _shopService.getShopById(shopId);
-        if (shop != null) shops.add(shop);
-      }
+      // Загружаем все магазины
+      final shops = await _shopService.getAllShops();
 
       setState(() {
         _products = products;
@@ -148,26 +142,11 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
     setState(() {
       _selectedCategory = categoryKey.toLowerCase();
     });
-    _loadData();
   }
 
   // ✅ Применение фильтров
   void _applySweetsFilters() {
-    final t = getTranslations();
-    final included = _includedSweets
-        .where((sweet) => sweet['selected'] == true)
-        .map((sweet) => t(sweet['key']))
-        .toList();
-    final excluded = _excludedSweets
-        .where((sweet) => sweet['selected'] == true)
-        .map((sweet) => t(sweet['key']))
-        .toList();
-
-    // 🔹 Здесь можно добавить фильтрацию на стороне клиента или сервера
-    // Для простоты пока просто закрываем модалку
     setState(() => _showSweetsFilterModal = false);
-
-    print('🔍 Filters applied: included=$included, excluded=$excluded');
   }
 
   @override
@@ -420,8 +399,12 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
 
   Widget _buildShopsSection() {
     final t = getTranslations();
-    // Если нет товаров для категории
-    if (_products.isEmpty) {
+    
+    // Фильтруем товары по выбранной секции
+    final filteredProducts = _products.where((p) => p.section == _selectedCategory).toList();
+
+    // Если нет товаров для выбранной секции
+    if (filteredProducts.isEmpty) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(40),
@@ -440,11 +423,15 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
       );
     }
 
-    // Группируем товары по магазинам
+    if (_shops.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Группируем отфильтрованные товары по магазинам
     final shopsWithProducts = <Shop, List<Product>>{};
-    for (var product in _products) {
+    for (var product in filteredProducts) {
       final shop = _shops.firstWhere((s) => s.id == product.shopId,
-          orElse: () => Shop(         // ← возвращаем заглушку вместо краша
+          orElse: () => Shop(
             id: '',
             name: t('unknown'),
             rating: 0,
@@ -480,15 +467,13 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
     );
   }
 
-  // ✅ Карточка магазина с реальными данными
+  // ✅ Карточка магазина с товарами ТОЛЬКО выбранной категории
   Widget _buildShopCard(Shop shop, List<Product> products) {
     final t = getTranslations();
-    // Берём первые 6 товаров для сетки
     final displayProducts = products.take(6).toList();
 
     return GestureDetector(
       onTap: () {
-        // Переход на страницу магазина
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -508,172 +493,103 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
               offset: const Offset(0, 4),
               spreadRadius: 0,
             ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-              spreadRadius: 0,
-            ),
           ],
         ),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Сетка товаров 2x3 (только если есть товары)
-                if (displayProducts.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
+            // Сетка товаров
+            if (displayProducts.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
-                        // Первый ряд
-                        Row(
-                          children: [
-                            Expanded(
-                                child:
-                                    _buildProductGridItem(displayProducts[0])),
-                            if (displayProducts.length > 1) ...[
-                              const SizedBox(width: 8),
-                              Expanded(
-                                  child: _buildProductGridItem(
-                                      displayProducts[1])),
-                            ],
-                            if (displayProducts.length > 2) ...[
-                              const SizedBox(width: 8),
-                              Expanded(
-                                  child: _buildProductGridItem(
-                                      displayProducts[2])),
-                            ],
-                          ],
-                        ),
-                        if (displayProducts.length > 3)
-                          const SizedBox(height: 8),
-                        // Второй ряд
-                        if (displayProducts.length > 3)
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: _buildProductGridItem(
-                                      displayProducts[3])),
-                              if (displayProducts.length > 4) ...[
-                                const SizedBox(width: 8),
-                                Expanded(
-                                    child: _buildProductGridItem(
-                                        displayProducts[4])),
-                              ],
-                              if (displayProducts.length > 5) ...[
-                                const SizedBox(width: 8),
-                                Expanded(
-                                    child: _buildProductGridItem(
-                                        displayProducts[5])),
-                              ],
-                            ],
-                          ),
+                        Expanded(child: _buildProductGridItem(displayProducts[0])),
+                        if (displayProducts.length > 1) ...[
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildProductGridItem(displayProducts[1])),
+                        ],
+                        if (displayProducts.length > 2) ...[
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildProductGridItem(displayProducts[2])),
+                        ],
                       ],
                     ),
-                  ),
+                    if (displayProducts.length > 3) const SizedBox(height: 8),
+                    if (displayProducts.length > 3)
+                      Row(
+                        children: [
+                          Expanded(child: _buildProductGridItem(displayProducts[3])),
+                          if (displayProducts.length > 4) ...[
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildProductGridItem(displayProducts[4])),
+                          ],
+                          if (displayProducts.length > 5) ...[
+                            const SizedBox(width: 8),
+                            Expanded(child: _buildProductGridItem(displayProducts[5])),
+                          ],
+                        ],
+                      ),
+                  ],
+                ),
+              ),
 
-                // Информация о магазине
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            // Информация о магазине
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Название и время доставки
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            shop.name,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w700),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '${t('today')}, 8:00-10:00', // 🔹 Можно добавить поле deliveryTime в модель Shop
-                              style: const TextStyle(
-                                  fontSize: 11, fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      // Категория
                       Text(
-                        '${t(_selectedCategory).toUpperCase()} | ASTANA | DELIVERY',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        shop.name,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
-                      const SizedBox(height: 12),
-                      // Рейтинг и доставка
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.amber, size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${shop.rating}',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                          Text(
-                            ' (${shop.reviews})',
-                            style: TextStyle(
-                                color: Colors.grey[600], fontSize: 12),
-                          ),
-                          const Spacer(),
-                          const Icon(Icons.local_shipping, size: 18),
-                          const SizedBox(width: 4),
-                          Text(
-                            shop.freeDelivery ? t('free_delivery') : t('paid'),
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                        ],
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          '${t('today')}, 8:00-10:00',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
-
-            // Сердечко в правом верхнем углу
-            Positioned(
-              top: 20,
-              right: 20,
-              child: GestureDetector(
-                onTap: () {
-                  // 🔹 Для магазинов нужно отдельное поле в User модели
-                  // Пока показываем заглушку
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Shop favorites coming soon!')),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                  const SizedBox(height: 6),
+                  Text(
+                    'ASTANA | DELIVERY',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${shop.rating}',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                      ),
+                      Text(
+                        ' (${shop.reviews})',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                      ),
+                      const Spacer(),
+                      const Icon(Icons.local_shipping, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        shop.freeDelivery ? t('free_delivery') : t('paid'),
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.favorite_border,
-                    size: 20,
-                    color: Colors.grey,
-                  ),
-                ),
+                ],
               ),
             ),
           ],
@@ -697,8 +613,8 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: product.images.isNotEmpty
-                  ? Image.network(
-                      product.images.first,
+                  ? UniversalImage(
+                      imagePath: product.images.first,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
                         return Container(
@@ -707,12 +623,9 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
                               color: Colors.grey, size: 40),
                         );
                       },
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        );
-                      },
+                      placeholder: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
                   : const Icon(Icons.cake_outlined,
                       color: Colors.grey, size: 40),
@@ -730,7 +643,7 @@ class _SweetsCategoryScreenState extends State<SweetsCategoryScreen> with Langua
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  product.formattedPrice, // ✅ "42480 ₸"
+                  product.formattedPrice,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,

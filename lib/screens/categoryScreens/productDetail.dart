@@ -7,6 +7,7 @@ import '../../services/shopService.dart';
 import '../../models/product.dart';
 import '../../models/shop.dart';
 import '../../services/userService.dart';
+import '../../widgets/universal_image.dart';
 
 class ProductDetailScreen extends StatefulWidget {
   final String productId;
@@ -174,8 +175,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with Language
                       width: double.infinity,
                       decoration: BoxDecoration(color: Colors.grey[200]),
                       child: _product!.images.isNotEmpty
-                          ? Image.network(
-                        _product!.images[_selectedImage],
+                          ? UniversalImage(
+                        imagePath: _product!.images[_selectedImage],
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -252,8 +253,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with Language
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(6),
-                              child: Image.network(
-                                _product!.images[index],
+                              child: UniversalImage(
+                                imagePath: _product!.images[index],
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey[300]),
                               ),
@@ -358,7 +359,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with Language
               child: _shop!.image.isNotEmpty
                   ? ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(_shop!.image, fit: BoxFit.cover),
+                child: UniversalImage(
+                  imagePath: _shop!.image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) =>
+                  const Icon(Icons.store, size: 30, color: Color(0xFFB07183)),
+                ),
               )
                   : const Icon(Icons.store, size: 30, color: Color(0xFFB07183)),
             ),

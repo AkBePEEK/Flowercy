@@ -1,3 +1,4 @@
+import 'package:flowery_app/screens/orderScreens/orderInProgress.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert'; // ✅ Добавлено для base64
 
@@ -221,6 +222,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
         required String productName,
         required String price,
         required String orderId,
+        required String rawStatus, // ✅ Добавлено
         required AppTranslations t,
         VoidCallback? onTap, // ✅ Новый параметр
       }) {
@@ -312,16 +314,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () {
-                // Complete или Declined
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OrderDetailScreen(
-                      orderNumber: orderNumber,
-                      orderId: orderId,
-                    ),
-                  ),
-                );
+                _navigateToOrder(context, rawStatus, orderId, orderNumber);
               },
               style: TextButton.styleFrom(
                 padding: EdgeInsets.zero,
@@ -350,6 +343,32 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
     );
   }
 
+  void _navigateToOrder(BuildContext context, String status, String orderId, String orderNumber) {
+    final activeStatuses = ['placed', 'collecting', 'delivery', 'in progress'];
+    if (activeStatuses.contains(status.toLowerCase())) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OrderInProgressScreen(
+            orderNumber: orderNumber,
+            orderId: orderId,
+            status: status,
+          ),
+        ),
+      );
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OrderDetailScreen(
+            orderNumber: orderNumber,
+            orderId: orderId,
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _buildOrderItemFromOrder(Order order, BuildContext context, AppTranslations t) {
     final firstItem = order.items.firstOrNull; // ✅ Первый товар для превью
     return _buildOrderItem(
@@ -360,15 +379,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
       productName: firstItem?.name ?? t('order_preview'),
       price: order.formattedTotal, // ✅ "42 480 ₸" из модели
       orderId:     order.id, // ✅ Передаём ID заказа для навигации
+      rawStatus: order.status,
       t: t,
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => OrderDetailScreen(
-            orderNumber: '№${order.id}', orderId: order.id,
-          ),
-        ),
-      ),
+      onTap: () => _navigateToOrder(context, order.status, order.id, '№${order.id}'),
     );
   }
 }

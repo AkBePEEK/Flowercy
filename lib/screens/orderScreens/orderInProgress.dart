@@ -1,9 +1,10 @@
-import 'package:flowery_app/screens/orderScreens/orderComplete.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/order.dart' as local;
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
+import 'orderComplete.dart';
 
 class OrderInProgressScreen extends StatefulWidget {
   final String orderNumber;
@@ -137,6 +138,24 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
     );
   }
 
+  // ✅ Открыть WhatsApp чат с курьером
+  Future<void> _launchWhatsApp() async {
+    final t = getTranslations();
+    const phone = "+77777777777"; // Заглушка номера курьера
+    final message = "${t('home')}! Я по поводу заказа №${widget.orderId}";
+    final url = "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
+    
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(t('error'))),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = getTranslations();
@@ -210,7 +229,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
                         const SizedBox(height: 60),
                         _buildProgressTracker(statusData['completedSteps']),
                         const SizedBox(height: 60),
-                        // ✅ Support и Details — теперь рабочие
+                        // ✅ Support, Chat and Details — теперь рабочие
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -219,7 +238,14 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
                               label: t('support'),
                               onTap: _openSupport,
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: 12),
+                            // ✅ НОВАЯ КНОПКА: Чат с курьером
+                            _buildActionButton(
+                              icon: Icons.chat_outlined,
+                              label: t('chat_courier'),
+                              onTap: _launchWhatsApp,
+                            ),
+                            const SizedBox(width: 12),
                             _buildActionButton(
                               icon: Icons.list,
                               label: t('details'),

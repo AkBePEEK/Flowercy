@@ -16,11 +16,12 @@ import 'orderInProgress.dart';
 class OrderDetailsScreen extends StatefulWidget {
   final List<CartItem> cartItems;
   final int total;
+  final String? sellerComment;
 
   const OrderDetailsScreen({
     super.key,
     required this.cartItems,
-    required this.total,
+    required this.total, required this.sellerComment,
   });
 
   @override
@@ -652,6 +653,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
         deliveryTime: deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
         payment: paymentOptions[_selectedPaymentIndex]['title']!,
         comment: _courierComment.isEmpty ? null : _courierComment,
+        sellerComment: widget.sellerComment, // ✅ Передаем комментарий продавцу
         createdAt: DateTime.now(),
       );
 
