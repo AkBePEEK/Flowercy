@@ -7,6 +7,7 @@ import '../../services/userService.dart';
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
 import '../../models/bouquetRequest.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/api/api_config.dart';
 
@@ -22,6 +23,11 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
 
   // Параметры букета
   String? _selectedOccasionKey;
+  String? _selectedMoodKey;
+  String? _selectedStyleKey;
+  List<String> _selectedColors = [];
+  bool _forceGen = true;
+  
   final TextEditingController _budgetToController = TextEditingController();
   final TextEditingController _nlpController = TextEditingController();
   
@@ -36,6 +42,9 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
 
   // Статические списки ключей для перевода
   final List<String> _occasionKeys = ['birthday', 'anniversary', 'valentines_day', 'march_8th', 'thank_you', 'congratulations'];
+  final List<String> _moodKeys = ['cheerful', 'romantic', 'elegant', 'happy'];
+  final List<String> _styleKeys = ['sun_drenched', 'modern', 'classic', 'rustic'];
+  final List<String> _colorKeys = ['golden_yellow', 'amber', 'pink', 'red', 'white', 'yellow', 'purple', 'mixed'];
   
   @override
   void initState() {
@@ -98,9 +107,9 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
     try {
       final userId = UserService().currentUserId ?? 'guest';
 
-      // Формируем детальный запрос на основе выбранных цветов и количеств
+      // Формируем детальный запрос на основе выбранных цветов
       String flowerQuery = _selectedCatalogFlowers
-          .map((f) => "${f['count']}x ${f['name']}")
+          .map((f) => f['name'])
           .join(", ");
       
       String query = _nlpController.text;
@@ -132,7 +141,11 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
             flowers: _selectedCatalogFlowers.isNotEmpty 
               ? _selectedCatalogFlowers.map((f) => f['name'] as String).toList()
               : ['rose', 'peony', 'eucalyptus'], // fallback flowers
+            colors: _selectedColors,
+            mood: _selectedMoodKey,
+            style: _selectedStyleKey,
             occasion: _selectedOccasionKey,
+            forceGen: _forceGen,
           );
           
           if (genResult['image_base64'] != null) {
@@ -198,7 +211,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
         userName: user.name ?? user.email.split('@').first,
         userPhone: user.phone ?? '',
         bouquetName: bouquet.name,
-        flowers: bouquet.description ?? '', // Using description as fallback for flowers string
+        flowers: bouquet.description ?? '',
         price: bouquet.price.toInt(),
         image: bouquet.imageUrl,
         createdAt: DateTime.now(),
@@ -206,9 +219,41 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
 
       await OrderService().createBouquetRequest(request);
 
+      // Прямой запуск WhatsApp сразу после сохранения
+      const phone = "77008913025";
+      final message = "Здравствуйте! Я хочу заказать букет, сгенерированный ИИ: \"${bouquet.name}\". Цена: ${bouquet.price.toInt()} ₸.";
+      final encodedMsg = Uri.encodeComponent(message);
+      
+      final urls = [
+        "whatsapp://send?phone=$phone&text=$encodedMsg",
+        "https://wa.me/$phone?text=$encodedMsg",
+      ];
+      
+      bool launched = false;
+      for (var url in urls) {
+        try {
+          if (await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication)) {
+            launched = true;
+            break;
+          }
+        } catch (_) {}
+      }
+
       if (mounted) {
         setState(() => _isGenerating = false);
-        _showSuccessSheet(bouquet, t);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(launched ? t('request_sent') : "Запрос сохранен. Не удалось открыть WhatsApp."),
+            backgroundColor: launched ? Colors.green : Colors.orange,
+          ),
+        );
+        
+        // Возвращаемся на главный экран через секунду
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) {
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -221,60 +266,7 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
   }
 
   void _showSuccessSheet(ProductCard bouquet, AppTranslations t) {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-            const Icon(Icons.check_circle, color: Color(0xFFB07183), size: 48),
-            const SizedBox(height: 12),
-            Text(
-              t('request_sent'),
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${t('request_sent_desc')} "${bouquet.name}"',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFB07183),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(t('success'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    // Этот метод больше не используется, так как переход стал прямым
   }
 
   @override
@@ -424,46 +416,30 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
                     final selectionIdx = _selectedCatalogFlowers.indexWhere((s) => s['id'] == flower['id']);
                     final count = selectionIdx != -1 ? _selectedCatalogFlowers[selectionIdx]['count'] : 0;
 
+                    final isSelected = selectionIdx != -1;
+
                     return ListTile(
-                      contentPadding: EdgeInsets.zero,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                       leading: ClipRRect(
                         borderRadius: BorderRadius.circular(8),
                         child: _buildImage(flower['image'], size: 40),
                       ),
                       title: Text(flower['name'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                       subtitle: Text('${flower['price_per_stem']} ₸', style: const TextStyle(fontSize: 12)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (count > 0) ...[
-                            IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, size: 20),
-                              onPressed: () => setState(() {
-                                if (_selectedCatalogFlowers[selectionIdx]['count'] > 1) {
-                                  _selectedCatalogFlowers[selectionIdx]['count']--;
-                                } else {
-                                  _selectedCatalogFlowers.removeAt(selectionIdx);
-                                }
-                              }),
-                            ),
-                            Text('$count', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          ],
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline, size: 20, color: Color(0xFFB07183)),
-                            onPressed: () => setState(() {
-                              if (selectionIdx != -1) {
-                                _selectedCatalogFlowers[selectionIdx]['count']++;
-                              } else {
-                                _selectedCatalogFlowers.add({
-                                  'id': flower['id'],
-                                  'name': flower['name'],
-                                  'count': 1,
-                                });
-                              }
-                            }),
-                          ),
-                        ],
-                      ),
+                      trailing: isSelected 
+                        ? const Icon(Icons.check_circle, color: Color(0xFFB07183))
+                        : Icon(Icons.radio_button_unchecked, color: Colors.grey[300]),
+                      onTap: () => setState(() {
+                        if (isSelected) {
+                          _selectedCatalogFlowers.removeAt(selectionIdx);
+                        } else {
+                          _selectedCatalogFlowers.add({
+                            'id': flower['id'],
+                            'name': flower['name'],
+                            'count': 1,
+                          });
+                        }
+                      }),
                     );
                   },
                 ),
@@ -474,34 +450,77 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
           // 2. Повод
           _buildSectionTitle(t('occasion')),
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey[200]!),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _selectedOccasionKey,
-                hint: Text(t('select_occasion')),
-                isExpanded: true,
-                items: _occasionKeys.map((key) => DropdownMenuItem(value: key, child: Text(t(key)))).toList(),
-                onChanged: (value) => setState(() => _selectedOccasionKey = value),
+          _buildDropdown(_selectedOccasionKey, _occasionKeys, t('select_occasion'), (val) => setState(() => _selectedOccasionKey = val), t),
+
+          const SizedBox(height: 24),
+
+          // 3. Настроение и Стиль
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(t('mood')),
+                    const SizedBox(height: 8),
+                    _buildDropdown(_selectedMoodKey, _moodKeys, t('select_mood'), (val) => setState(() => _selectedMoodKey = val), t),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle(t('style')),
+                    const SizedBox(height: 8),
+                    _buildDropdown(_selectedStyleKey, _styleKeys, t('select_style'), (val) => setState(() => _selectedStyleKey = val), t),
+                  ],
+                ),
+              ),
+            ],
           ),
 
           const SizedBox(height: 24),
 
-          // 3. Бюджет
+          // 4. Цвета
+          _buildSectionTitle(t('colors')),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: _colorKeys.map((key) {
+              final isSelected = _selectedColors.contains(key);
+              return FilterChip(
+                label: Text(t(key), style: TextStyle(fontSize: 12, color: isSelected ? Colors.white : Colors.black87)),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    if (selected) {
+                      _selectedColors.add(key);
+                    } else {
+                      _selectedColors.remove(key);
+                    }
+                  });
+                },
+                selectedColor: const Color(0xFFB07183),
+                checkmarkColor: Colors.white,
+                backgroundColor: Colors.grey[100],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: Colors.grey[200]!)),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 24),
+
+          // 5. Бюджет
           _buildSectionTitle('${t('budget')} (₸)'),
           const SizedBox(height: 8),
           _buildBudgetField(_budgetToController, t('up_to')),
 
           const SizedBox(height: 24),
 
-          // 4. Дополнительные пожелания (текст)
+          // 6. Дополнительные пожелания (текст)
           _buildSectionTitle(t('describe_dream_bouquet')),
           const SizedBox(height: 8),
           Container(
@@ -522,8 +541,39 @@ class _AIFloristScreenState extends State<AIFloristScreen> with LanguageStateMix
             ),
           ),
 
+          const SizedBox(height: 24),
+
+          // 7. Force Generation
+          SwitchListTile(
+            title: Text(t('force_gen'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+            value: _forceGen,
+            activeColor: const Color(0xFFB07183),
+            onChanged: (val) => setState(() => _forceGen = val),
+            contentPadding: EdgeInsets.zero,
+          ),
+
           const SizedBox(height: 32),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDropdown(String? value, List<String> items, String hint, Function(String?) onChanged, AppTranslations t) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: Text(hint, style: const TextStyle(fontSize: 13)),
+          isExpanded: true,
+          items: items.map((key) => DropdownMenuItem(value: key, child: Text(t(key), style: const TextStyle(fontSize: 13)))).toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }
