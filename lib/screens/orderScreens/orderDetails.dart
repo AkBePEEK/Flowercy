@@ -8,6 +8,7 @@ import '../../services/notificationService.dart';
 import '../../services/orderService.dart';
 import '../../services/userService.dart';
 import '../../services/paymentService.dart';
+import '../../services/shopService.dart';
 import 'orderInProgress.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
@@ -32,7 +33,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
   DateTime? _selectedCustomDateTime;
   int _selectedPaymentIndex = 0;
   String _recipientName = '';
-  String _shopAddress = 'пр. Мангилик Ел, 53, Астана'; // Заглушка адреса магазина
+  String _shopAddress = '53 Mangilik El Ave, Astana'; // Placeholder for shop address
   String? _shopId;
   bool _isLoading = true;
   bool _isPlacingOrder = false;
@@ -107,7 +108,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       
       if (widget.cartItems.isNotEmpty) {
         final firstItem = widget.cartItems.first;
-        _shopId = firstItem.productId.split('_').first;
+        _shopId = firstItem.shopId; // Use shopId from cart item
+        
+        if (_shopId != null) {
+          final shop = await ShopService().getShopById(_shopId!);
+          if (shop != null) {
+            _shopAddress = shop.address;
+          }
+        }
       }
 
       setState(() {
@@ -116,6 +124,68 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       });
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _selectPickupPoint() async {
+    final t = getTranslations();
+    setState(() => _isLoading = true);
+    
+    try {
+      final shops = await ShopService().getAllShops();
+      setState(() => _isLoading = false);
+      
+      if (!mounted) return;
+      
+      showModalBottomSheet(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  t('pickup_point'),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 16),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: shops.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final shop = shops[index];
+                      final isSelected = shop.id == _shopId;
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(shop.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        subtitle: Text(shop.address, style: const TextStyle(fontSize: 13)),
+                        trailing: isSelected ? const Icon(Icons.check_circle, color: Color(0xFFB07183)) : null,
+                        onTap: () {
+                          setState(() {
+                            _shopId = shop.id;
+                            _shopAddress = shop.address;
+                          });
+                          Navigator.pop(context);
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('error'))));
     }
   }
 
@@ -263,8 +333,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
         _buildInfoRow(
           t('pickup_point'),
           _shopAddress,
-          isEditable: false,
-          onTap: null, 
+          isEditable: true,
+          onTap: _selectPickupPoint, 
         ),
       ],
     );
