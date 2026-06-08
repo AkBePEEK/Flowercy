@@ -1,19 +1,28 @@
-[+21114 ms] I/flutter (18361): 🌐 Current API BaseURL: https://large-windows-tap.loca.lt
-[   +1 ms] I/flutter (18361): 🔍 Attempting health check to https://large-windows-tap.loca.lt/catalog/flowers...
-[+2300 ms] I/flutter (18361): ❌ Error in getCatalogFlowers: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
-[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
-[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
-[        ] I/flutter (18361): ✅ Connection successful!
-[ +841 ms] I/flutter (18361): 🔄 Retry 1/ 2 after error: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
-[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
-[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
-[+5266 ms] I/flutter (18361): 🔄 Retry 2/ 2 after error: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
-[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
-[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
-[+5848 ms] I/flutter (18361): ❌ Error in recommendFromText: DioException [bad response]: This exception was thrown because the response has a status code of 503 and RequestOptions.validateStatus was configured to throw for this status code.
-[        ] I/flutter (18361): The status code of 503 has the following meaning: "Server error - the server failed to fulfil an apparently valid request"
-[        ] I/flutter (18361): Read more about status codes at https://developer.mozilla.org/en-US/docs/Web/HTTP/Status
-[        ] I/flutter (18361): In order to resolve this exception you typically have either to verify and fix your request code or you have to fix the server code.
+[+3218 ms] W/BpBinder(26684): PerfMonitor binderTransact :  time=771ms interface=android.media.IMediaMetadataRetriever code=4
+[        ] E/HeifDecoderImpl(26684): failed to set data source!
+[   +3 ms] D/skia    (26684): --- Failed to create image decoder with message 'invalid input'
+[+1025 ms] W/BpBinder(26684): PerfMonitor binderTransact :  time=1024ms interface=android.media.IMediaMetadataRetriever code=4
+[  +21 ms] D/HeifDecoderImpl(26684): No valid image or sequence available
+[        ] E/FlutterImageDecoderImplDefault(26684): Failed to decode image
+[        ] E/FlutterImageDecoderImplDefault(26684): android.graphics.ImageDecoder$DecodeException: Failed to create image decoder with message 'invalid input'Input contained an error.
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.nCreate(Native Method)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.access$200(ImageDecoder.java:173)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder$ByteBufferSource.createImageDecoder(ImageDecoder.java:250)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.decodeBitmapImpl(ImageDecoder.java:1862)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.decodeBitmap(ImageDecoder.java:1855)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at io.flutter.embedding.engine.image.ImageDecoderDefaultImpl.decodeImage(ImageDecoderDefaultImpl.java:44)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at io.flutter.embedding.engine.image.FlutterImageDecoder.decodeImage(FlutterImageDecoder.java:60)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at io.flutter.embedding.engine.FlutterJNI.decodeImage(FlutterJNI.java:577)
+[ +126 ms] D/HeifDecoderImpl(26684): No valid image or sequence available
+[        ] D/skia    (26684): --- Failed to create image decoder with message 'invalid input'
+[ +181 ms] E/HeifDecoderImpl(26684): failed to set data source!
+[        ] E/FlutterImageDecoderImplDefault(26684): Failed to decode image
+[        ] E/FlutterImageDecoderImplDefault(26684): android.graphics.ImageDecoder$DecodeException: Failed to create image decoder with message 'invalid input'Input contained an error.
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.nCreate(Native Method)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.access$200(ImageDecoder.java:173)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder$ByteBufferSource.createImageDecoder(ImageDecoder.java:250)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.decodeBitmapImpl(ImageDecoder.java:1862)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at android.graphics.ImageDecoder.decodeBitmap(ImageDecoder.java:1855)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at io.flutter.embedding.engine.image.ImageDecoderDefaultImpl.decodeImage(ImageDecoderDefaultImpl.java:44)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at io.flutter.embedding.engine.image.FlutterImageDecoder.decodeImage(FlutterImageDecoder.java:60)
+[        ] E/FlutterImageDecoderImplDefault(26684): 	at io.flutter.embedding.engine.FlutterJNI.decodeImage(FlutterJNI.java:577)

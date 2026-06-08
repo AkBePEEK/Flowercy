@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
 import '../../models/bouquetRequest.dart';
-import '../../services/aiFloristService.dart';
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
+import '../../widgets/universal_image.dart';
 
 class BouquetRequestManagementScreen extends StatefulWidget {
   const BouquetRequestManagementScreen({super.key});
@@ -86,7 +85,7 @@ class _BouquetRequestManagementScreenState extends State<BouquetRequestManagemen
                   child: SizedBox(
                     width: 60,
                     height: 60,
-                    child: _buildImage(request.image),
+                    child: UniversalImage(imagePath: request.image),
                   ),
                 ),
               if (request.image != null) const SizedBox(width: 12),
@@ -142,60 +141,6 @@ class _BouquetRequestManagementScreenState extends State<BouquetRequestManagemen
         ],
       ),
     );
-  }
-
-  Widget _buildImage(String? imageData) {
-    if (imageData == null || imageData.isEmpty) return const Icon(Icons.image_not_supported);
-
-    final String baseUrl = AIFloristService().baseUrl;
-
-    if (imageData.startsWith('http')) {
-      return Image.network(
-        imageData,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-      );
-    } else if (imageData.startsWith('catalog/')) {
-      final imageUrl = '$baseUrl/static/$imageData';
-      return Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          String assetPath = imageData.replaceFirst('catalog/', 'assets/flowers/products/');
-          if (assetPath.contains('bright_sunflower_mix')) assetPath = 'assets/flowers/products/bouquet1.png';
-          if (assetPath.contains('wolt_wildflower_mix')) assetPath = 'assets/flowers/products/bouquet2.png';
-          if (assetPath.contains('tender_pink_peonies')) assetPath = 'assets/flowers/products/bouquet3.png';
-          if (assetPath.contains('wolt_exotic_orchid')) assetPath = 'assets/flowers/products/bouquet4.png';
-          
-          return Image.asset(
-            assetPath,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-          );
-        },
-      );
-    } else if (imageData.contains('.png') || imageData.contains('.jpg')) {
-      String assetPath = imageData;
-      return Image.asset(
-        assetPath,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-      );
-    } else {
-      try {
-        String base64Str = imageData;
-        if (base64Str.contains(',')) {
-          base64Str = base64Str.split(',').last;
-        }
-        return Image.memory(
-          base64Decode(base64Str),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-        );
-      } catch (e) {
-        return const Icon(Icons.broken_image);
-      }
-    }
   }
 
   Widget _buildRequestStatusBadge(String status, AppTranslations t) {

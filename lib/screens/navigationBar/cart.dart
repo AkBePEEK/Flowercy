@@ -363,7 +363,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
                         children: [
                           IconButton(
                             icon: const Icon(Icons.remove, size: 16),
-                            onPressed: () => _editPromocode(),
+                            onPressed: () => _updateQuantity(item, item.quantity - 1),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -380,7 +380,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
                           ),
                           IconButton(
                             icon: const Icon(Icons.add, size: 16),
-                            onPressed: () => _editPromocode(),
+                            onPressed: () => _updateQuantity(item, item.quantity + 1),
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(),
                           ),
@@ -404,7 +404,7 @@ class _CartScreenState extends State<CartScreen> with LanguageStateMixin{
           // ✅ Кнопка удаления
           IconButton(
             icon: const Icon(Icons.close, size: 20, color: Colors.grey),
-            onPressed: () => _showSnackBar(item.productId),
+            onPressed: () => _removeFromCart(item.productId),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),

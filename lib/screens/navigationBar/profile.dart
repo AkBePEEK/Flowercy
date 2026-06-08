@@ -10,6 +10,7 @@ import '../../models/user.dart'; // Ваша модель
 import '../aboutUsScreen.dart';
 import '../savedAddresses.dart';
 import '../authorizationScreens/signIn.dart';
+import '../../widgets/universal_image.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -173,23 +174,20 @@ class _ProfileScreenState extends State<ProfileScreen> with LanguageStateMixin{
       child: Row(
         children: [
           // Аватар (с заглушкой или URL из Firestore)
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              shape: BoxShape.circle,
-              // ✅ Если есть аватар — показываем изображение
-              image: _firestoreUser?.avatarUrl != null
-                  ? DecorationImage(
-                image: NetworkImage(_firestoreUser!.avatarUrl!),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+              ),
+              child: UniversalImage(
+                imagePath: _firestoreUser?.avatarUrl,
+                placeholder: const Icon(Icons.person, size: 35, color: Colors.grey),
                 fit: BoxFit.cover,
-              )
-                  : null,
+              ),
             ),
-            child: _firestoreUser?.avatarUrl == null
-                ? const Icon(Icons.person, size: 35, color: Colors.grey)
-                : null,
           ),
           const SizedBox(width: 12),
           // Имя и настройки

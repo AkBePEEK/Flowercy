@@ -189,26 +189,6 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> with LanguageStateM
 
                       const SizedBox(height: 24),
 
-                      // Contact button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton.icon(
-                          onPressed: () {},
-                          icon: const Icon(Icons.chat_bubble_outline),
-                          label: Text(
-                            t('contact_shop'),
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFFB07183)),
-                            foregroundColor: const Color(0xFFB07183),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
                       Divider(color: Colors.grey[200]),
                       const SizedBox(height: 24),
 
@@ -218,13 +198,6 @@ class _ShopDetailScreenState extends State<ShopDetailScreen> with LanguageStateM
                       _buildInfoCard(Icons.location_on, t('address'), _shop!.address),
                       const SizedBox(height: 12),
                       _buildInfoCard(Icons.access_time, t('working_hours'), '9:00 - 21:00'),
-                      const SizedBox(height: 12),
-                      _buildInfoCard(
-                        Icons.local_shipping,
-                        t('delivery'),
-                        _shop!.freeDelivery ? t('free_delivery_in_hours') : t('paid_delivery'),
-                        valueColor: Colors.green,
-                      ),
 
                       const SizedBox(height: 32),
 

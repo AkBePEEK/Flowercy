@@ -285,22 +285,6 @@ class _SearchScreenState extends State<SearchScreen> with LanguageStateMixin {
                             ),
                           ),
                         ),
-                      if (shop.freeDelivery)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.pink[50],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            t('free_delivery'),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.pink[700],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ],

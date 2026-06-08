@@ -197,16 +197,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with Language
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildCircleButton(Icons.close, () => Navigator.pop(context)),
-                          Row(
-                            children: [
-                              _buildCircleButton(Icons.share, () {}),
-                              const SizedBox(width: 8),
-                              _buildCircleButton(
-                                _isFavorite ? Icons.favorite : Icons.favorite_border,
-                                _toggleFavorite,
-                                color: _isFavorite ? const Color(0xFFB07183) : Colors.black87,
-                              ),
-                            ],
+                          _buildCircleButton(
+                            _isFavorite ? Icons.favorite : Icons.favorite_border,
+                            _toggleFavorite,
+                            color: _isFavorite ? const Color(0xFFB07183) : Colors.black87,
                           ),
                         ],
                       ),
@@ -400,26 +394,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with Language
 
         const SizedBox(height: 16),
 
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: OutlinedButton(
-            onPressed: () {
-              // Contact shop
-            },
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFFB07183)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: Text(
-              t('contact_shop'),
-              style: const TextStyle(color: Color(0xFFB07183), fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
         Row(
           children: [
             const Icon(Icons.star, size: 16, color: Colors.amber),
@@ -583,20 +557,6 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> with Language
         const SizedBox(height: 24),
         _buildProtectionItem(Icons.cancel_outlined, t('cancellation_policy'),
             t('cancellation_policy_desc')),
-        const SizedBox(height: 24),
-        GestureDetector(
-          onTap: () {},
-          child: Row(
-            children: [
-              const Icon(Icons.flag_outlined, size: 16, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(
-                t('report_listing'),
-                style: const TextStyle(fontSize: 13, color: Colors.grey, decoration: TextDecoration.underline),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'dart:convert'; // ✅ Добавлено для base64
 import '../../services/aiFloristService.dart';
 import '../../services/language_service.dart';
-import '../../services/orderService.dart'; // ✅ Добавлено
-import '../../services/userService.dart'; // ✅ Добавлено
-import '../../models/bouquetRequest.dart'; // ✅ Добавлено
+import '../../services/orderService.dart';
+import '../../services/userService.dart';
+import '../../models/bouquetRequest.dart';
+import '../../widgets/universal_image.dart';
 
 class BouquetComposerScreen extends StatefulWidget {
   final List<String> initialFlowers;
@@ -118,7 +118,7 @@ class _BouquetComposerScreenState extends State<BouquetComposerScreen> with Lang
                                   width: double.infinity,
                                   height: 150,
                                   margin: const EdgeInsets.only(bottom: 12),
-                                  child: _buildImage(v['image'] ?? v['generated_image']),
+                                  child: UniversalImage(imagePath: v['image'] ?? v['generated_image']),
                                 ),
                               ),
                             Text(
@@ -214,77 +214,6 @@ class _BouquetComposerScreenState extends State<BouquetComposerScreen> with Lang
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Widget _buildImage(String? imageData) {
-    if (imageData == null || imageData.isEmpty) {
-      return Container(
-        color: const Color(0xFFB07183).withValues(alpha: 0.1),
-        child: const Icon(Icons.local_florist, color: Color(0xFFB07183)),
-      );
-    }
-
-    final String baseUrl = AIFloristService().baseUrl;
-
-    if (imageData.startsWith('http')) {
-      return Image.network(
-        imageData,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-      );
-    } else if (imageData.startsWith('catalog/')) {
-      // Это изображение из внешнего репозитория (ML сервера)
-      final imageUrl = '$baseUrl/static/$imageData';
-      return Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          // Если не удалось загрузить с сервера, пробуем локальный маппинг
-          String assetPath = imageData.replaceFirst('catalog/', 'assets/flowers/products/');
-          
-          // Маппинг на существующие ассеты
-          if (assetPath.contains('bright_sunflower_mix')) assetPath = 'assets/flowers/products/bouquet1.png';
-          if (assetPath.contains('wolt_wildflower_mix')) assetPath = 'assets/flowers/products/bouquet2.png';
-          if (assetPath.contains('tender_pink_peonies')) assetPath = 'assets/flowers/products/bouquet3.png';
-          if (assetPath.contains('wolt_exotic_orchid')) assetPath = 'assets/flowers/products/bouquet4.png';
-          
-          return Image.asset(
-            assetPath,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-          );
-        },
-      );
-    } else if (imageData.contains('.png') || imageData.contains('.jpg')) {
-      // Это локальный ассет
-      String assetPath = imageData;
-      return Image.asset(
-        assetPath,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-      );
-    } else {
-      try {
-        String base64Str = imageData;
-        if (base64Str.contains(',')) {
-          base64Str = base64Str.split(',').last;
-        }
-        return Image.memory(
-          base64Decode(base64Str),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-        );
-      } catch (e) {
-        return _buildImagePlaceholder();
-      }
-    }
-  }
-
-  Widget _buildImagePlaceholder() {
-    return Container(
-      color: const Color(0xFFB07183).withValues(alpha: 0.1),
-      child: const Icon(Icons.local_florist, color: Color(0xFFB07183)),
-    );
   }
 
   @override
@@ -408,7 +337,7 @@ class _BouquetComposerScreenState extends State<BouquetComposerScreen> with Lang
                                   child: SizedBox(
                                     width: 40,
                                     height: 40,
-                                    child: _buildImage(flower['image']),
+                                    child: UniversalImage(imagePath: flower['image']),
                                   ),
                                 ),
                                 title: Text(flower['name'], style: const TextStyle(fontWeight: FontWeight.w600)),

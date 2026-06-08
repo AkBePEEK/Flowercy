@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/language_service.dart';
+import 'universal_image.dart';
 
 class FlowerCatalogHeader extends StatelessWidget {
   static const List<Map<String, String>> defaultCategories = [
@@ -25,7 +26,7 @@ class FlowerCatalogHeader extends StatelessWidget {
   final VoidCallback? onBackTap;
   final VoidCallback? onFilterTap;
   final ValueChanged<String>? onCategoryTap;
-  final VoidCallback? onFlowerTypeTap; // ✅ Callback для открытия модального окна
+  final VoidCallback? onFlowerTypeTap;
   final String? selectedCategory;
   final List<Map<String, String>>? categories;
   final List<String>? filters;
@@ -91,7 +92,6 @@ class FlowerCatalogHeader extends StatelessWidget {
   }
 
   Widget _buildCategories() {
-    // Determine how many items per row (max 4 per row, up to 2 rows)
     final totalItems = _categories.length;
     final itemsInFirstRow = totalItems > 4 ? 4 : totalItems;
     final itemsInSecondRow = totalItems > 4 ? (totalItems - 4 > 4 ? 4 : totalItems - 4) : 0;
@@ -147,14 +147,10 @@ class FlowerCatalogHeader extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
-              child: image.startsWith('http') 
-                ? Image.network(image, fit: BoxFit.cover, errorBuilder: (_,__,___) => _buildPlaceholder(isSelected))
-                : Image.asset(
-                image,
+              child: UniversalImage(
+                imagePath: image,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholder(isSelected);
-                },
+                errorBuilder: (_,__,___) => _buildPlaceholder(isSelected),
               ),
             ),
           ),

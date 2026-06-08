@@ -1,12 +1,10 @@
 import 'package:flowery_app/screens/orderScreens/orderInProgress.dart';
 import 'package:flutter/material.dart';
-import 'dart:convert'; // ✅ Добавлено для base64
-
 import '../../models/order.dart';
 import '../../models/bouquetRequest.dart';
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
-import '../../services/aiFloristService.dart';
+import '../../widgets/universal_image.dart';
 import 'orderComplete.dart';
 
 class MyOrdersScreen extends StatefulWidget {
@@ -159,7 +157,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: _buildImage(request.image),
+                  child: UniversalImage(imagePath: request.image),
                 ),
               ),
               const SizedBox(width: 12),
@@ -193,27 +191,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
     );
   }
 
-  Widget _buildImage(String? imageData) {
-    if (imageData == null || imageData.isEmpty) return const Icon(Icons.local_florist, color: Color(0xFFB07183));
-
-    final String baseUrl = AIFloristService().baseUrl;
-
-    if (imageData.startsWith('http')) {
-      return Image.network(imageData, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image));
-    } else if (imageData.startsWith('catalog/')) {
-      final imageUrl = '$baseUrl/static/$imageData';
-      return Image.network(imageUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image));
-    } else {
-      try {
-        String base64Str = imageData;
-        if (base64Str.contains(',')) base64Str = base64Str.split(',').last;
-        return Image.memory(base64Decode(base64Str), fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image));
-      } catch (e) {
-        return const Icon(Icons.broken_image);
-      }
-    }
-  }
-
   Widget _buildOrderItem(
       BuildContext context, {
         required String status,
@@ -222,11 +199,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
         required String productName,
         required String price,
         required String orderId,
-        required String rawStatus, // ✅ Добавлено
+        required String rawStatus,
         required AppTranslations t,
-        VoidCallback? onTap, // ✅ Новый параметр
+        VoidCallback? onTap,
       }) {
-    return GestureDetector( // ✅ Оборачиваем в GestureDetector
+    return GestureDetector(
         onTap: onTap,
         child: Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -344,7 +321,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
   }
 
   void _navigateToOrder(BuildContext context, String status, String orderId, String orderNumber) {
-    final activeStatuses = ['placed', 'collecting', 'delivery', 'in progress'];
+    final activeStatuses = ['placed', 'collecting', 'ready', 'in progress'];
     if (activeStatuses.contains(status.toLowerCase())) {
       Navigator.push(
         context,
@@ -370,15 +347,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with LanguageStateMixin
   }
 
   Widget _buildOrderItemFromOrder(Order order, BuildContext context, AppTranslations t) {
-    final firstItem = order.items.firstOrNull; // ✅ Первый товар для превью
+    final firstItem = order.items.firstOrNull;
     return _buildOrderItem(
       context,
-      status: t('order_status_${order.status.toLowerCase()}'), // ✅ Локализованный статус
-      statusColor: Color(int.parse('0xFF${order.statusColorHex}')), // ✅ Цвет из модели
+      status: t('order_status_${order.status.toLowerCase()}'),
+      statusColor: Color(int.parse('0xFF${order.statusColorHex}')),
       orderNumber: '№${order.id}',
       productName: firstItem?.name ?? t('order_preview'),
-      price: order.formattedTotal, // ✅ "42 480 ₸" из модели
-      orderId:     order.id, // ✅ Передаём ID заказа для навигации
+      price: order.formattedTotal,
+      orderId:     order.id,
       rawStatus: order.status,
       t: t,
       onTap: () => _navigateToOrder(context, order.status, order.id, '№${order.id}'),

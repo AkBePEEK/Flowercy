@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:convert'; // ✅ Добавлено для base64
 import '../../models/order.dart';
 import '../../models/bouquetRequest.dart';
-import '../../services/aiFloristService.dart';
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
+import '../../widgets/universal_image.dart';
 
 class OrderManagementScreen extends StatefulWidget {
   const OrderManagementScreen({super.key});
@@ -136,6 +135,8 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> with Lang
           ),
           const SizedBox(height: 8),
           Text('${t('recipient')}: ${order.recipient}'),
+          Text('${t('pickup_point')}: ${order.shopAddress}'),
+          Text('${t('pickup_time')}: ${order.pickupTime}'),
           Text('${t('total')}: ${order.formattedTotal}'),
           const Divider(height: 24),
           Text(t('change_status'), style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -146,8 +147,8 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> with Lang
             children: [
               _statusButton(order.id, 'placed', t('order_status_placed'), Colors.blue),
               _statusButton(order.id, 'collecting', t('order_status_collecting'), Colors.orange),
-              _statusButton(order.id, 'delivery', t('order_status_delivery'), Colors.purple),
-              _statusButton(order.id, 'delivered', t('order_status_delivered'), Colors.green),
+              _statusButton(order.id, 'ready', t('ready_for_pickup'), Colors.green),
+              _statusButton(order.id, 'complete', t('status_complete'), Colors.purple),
               _statusButton(order.id, 'cancelled', t('order_cancelled_msg'), Colors.red),
             ],
           ),
@@ -181,7 +182,7 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> with Lang
                   child: SizedBox(
                     width: 60,
                     height: 60,
-                    child: _buildImage(request.image),
+                    child: UniversalImage(imagePath: request.image),
                   ),
                 ),
               if (request.image != null) const SizedBox(width: 12),
@@ -239,72 +240,14 @@ class _OrderManagementScreenState extends State<OrderManagementScreen> with Lang
     );
   }
 
-  Widget _buildImage(String? imageData) {
-    if (imageData == null || imageData.isEmpty) return const Icon(Icons.image_not_supported);
-
-    final String baseUrl = AIFloristService().baseUrl;
-
-    if (imageData.startsWith('http')) {
-      return Image.network(
-        imageData,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-      );
-    } else if (imageData.startsWith('catalog/')) {
-      // Это изображение из внешнего репозитория (ML сервера)
-      final imageUrl = '$baseUrl/static/$imageData';
-      return Image.network(
-        imageUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          // Если не удалось загрузить с сервера, пробуем локальный маппинг
-          String assetPath = imageData.replaceFirst('catalog/', 'assets/flowers/products/');
-          
-          // Маппинг на существующие ассеты
-          if (assetPath.contains('bright_sunflower_mix')) assetPath = 'assets/flowers/products/bouquet1.png';
-          if (assetPath.contains('wolt_wildflower_mix')) assetPath = 'assets/flowers/products/bouquet2.png';
-          if (assetPath.contains('tender_pink_peonies')) assetPath = 'assets/flowers/products/bouquet3.png';
-          if (assetPath.contains('wolt_exotic_orchid')) assetPath = 'assets/flowers/products/bouquet4.png';
-          
-          return Image.asset(
-            assetPath,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-          );
-        },
-      );
-    } else if (imageData.contains('.png') || imageData.contains('.jpg')) {
-      // Это локальный ассет
-      String assetPath = imageData;
-      return Image.asset(
-        assetPath,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-      );
-    } else {
-      try {
-        String base64Str = imageData;
-        if (base64Str.contains(',')) {
-          base64Str = base64Str.split(',').last;
-        }
-        return Image.memory(
-          base64Decode(base64Str),
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-        );
-      } catch (e) {
-        return const Icon(Icons.broken_image);
-      }
-    }
-  }
-
   Widget _buildStatusBadge(String status, AppTranslations t) {
     Color color;
     switch (status.toLowerCase()) {
       case 'placed': color = Colors.blue; break;
       case 'collecting': color = Colors.orange; break;
-      case 'delivery': color = Colors.purple; break;
-      case 'delivered': color = Colors.green; break;
+      case 'ready': color = Colors.green; break;
+      case 'complete': color = Colors.purple; break;
+      case 'cancelled': color = Colors.red; break;
       default: color = Colors.grey;
     }
     return Container(

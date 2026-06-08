@@ -3,10 +3,11 @@ import '../../models/order.dart';
 import '../../models/orderItem.dart';
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
+import '../../widgets/universal_image.dart';
 
 class OrderDetailScreen extends StatefulWidget {
-  final String orderNumber; // для отображения в AppBar
-  final String orderId;     // для загрузки из Firestore
+  final String orderNumber;
+  final String orderId;
 
   const OrderDetailScreen({
     super.key,
@@ -54,12 +55,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
     }
   }
 
-  // Цвет статуса
   Color _getStatusColor(String status) {
     return Color(int.parse('0xFF${_order!.statusColorHex}'));
   }
 
-  // Повторить заказ — создаём новый с теми же товарами
   Future<void> _repeatOrder() async {
     final t = getTranslations();
     if (_order == null) return;
@@ -73,12 +72,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
         total: _order!.total,
         status: 'placed',
         recipient: _order!.recipient,
-        address: _order!.address,
-        apartment: _order!.apartment,
-        deliveryTime: _order!.deliveryTime,
+        shopAddress: _order!.shopAddress,
+        pickupTime: _order!.pickupTime,
         payment: _order!.payment,
-        comment: _order!.comment,
-        createdAt: DateTime.now(), sellerComment: '',
+        sellerComment: _order!.sellerComment,
+        createdAt: DateTime.now(),
       );
 
       await OrderService().createOrder(newOrder);
@@ -136,7 +134,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
           );
         }
 
-        _order = order; // Save for repeat order logic
+        _order = order;
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -163,8 +161,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
     );
   }
 
-  // ── Контент ──────────────────────────────────────────────────
-
   Widget _buildContent(Order order) {
     final t = getTranslations();
 
@@ -176,8 +172,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-
-                // Статус + номер заказа
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -192,7 +186,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          t('order_status_${order.status.toLowerCase()}'), // Map status to localized
+                          t('order_status_${order.status.toLowerCase()}'),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 13,
@@ -212,15 +206,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
-
-                // Товары заказа
                 ...order.items.map((item) => _buildOrderItem(item)),
-
                 const SizedBox(height: 8),
-
-                // Итого
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Row(
@@ -241,32 +229,23 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
-                // Информация о заказе
                 _buildInfoSection(order),
-
                 const SizedBox(height: 100),
               ],
             ),
           ),
         ),
-
-        // Кнопка Repeat order (только если можно повторить)
         if (order.canRepeat) _buildBottomButton(),
       ],
     );
   }
-
-  // ── Элемент товара ────────────────────────────────────────────
 
   Widget _buildOrderItem(OrderItem item) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          // Изображение (заглушка — в OrderItem нет image URL)
           Container(
             width: 80,
             height: 80,
@@ -274,19 +253,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(10),
             ),
-            child: item.image != null && item.image!.isNotEmpty
-                ? ClipRRect(
+            child: ClipRRect(
               borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                item.image!,
+              child: UniversalImage(
+                imagePath: item.image,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const Icon(
                   Icons.local_florist,
                   color: Colors.grey,
                 ),
               ),
-            )
-                : const Icon(Icons.local_florist, color: Colors.grey),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -320,8 +297,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
     );
   }
 
-  // ── Информация о заказе ───────────────────────────────────────
-
   Widget _buildInfoSection(Order order) {
     final t = getTranslations();
     return Container(
@@ -334,26 +309,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
         children: [
           if (order.recipient.isNotEmpty)
             _buildInfoRow(t('recipient'), order.recipient),
-          if (order.address.isNotEmpty) ...[
+          if (order.shopAddress.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
             _buildInfoRow(
-              t('address'),
-              order.apartment != null && order.apartment!.isNotEmpty
-                  ? '${order.address}, ${order.apartment}'
-                  : order.address,
+              t('pickup_point'),
+              order.shopAddress,
             ),
           ],
-          if (order.deliveryTime.isNotEmpty) ...[
+          if (order.pickupTime.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
-            _buildInfoRow(t('delivery_time'), order.deliveryTime),
+            _buildInfoRow(t('pickup_time'), order.pickupTime),
           ],
           if (order.payment.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
             _buildInfoRow(t('payment'), order.payment),
           ],
-          if (order.comment != null && order.comment!.isNotEmpty) ...[
+          if (order.sellerComment != null && order.sellerComment!.isNotEmpty) ...[
             const Divider(height: 1, indent: 16),
-            _buildInfoRow(t('courierComment'), order.comment!),
+            _buildInfoRow(t('commentSeller'), order.sellerComment!),
           ],
         ],
       ),
@@ -383,8 +356,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
       ),
     );
   }
-
-  // ── Кнопка Repeat order ───────────────────────────────────────
 
   Widget _buildBottomButton() {
     final t = getTranslations();
@@ -430,8 +401,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
     );
   }
 
-  // ── Экран ошибки ──────────────────────────────────────────────
-
   Widget _buildErrorState(String error) {
     final t = getTranslations();
     return Center(
@@ -443,7 +412,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> with LanguageStat
           Text(error, style: const TextStyle(color: Colors.red, fontSize: 16)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () => setState(() {}), // Trigger rebuild
+            onPressed: () => setState(() {}),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFB07183),
             ),

@@ -5,32 +5,32 @@ import 'orderItem.dart';
 class Order {
   final String id;
   final String userId;
+  final String? shopId; // ✅ Добавлено: ID магазина
   final List<OrderItem> items;
   final int total;
-  final String status; // "Complete", "In progress", "Declined", "Placed", "Collecting", "Delivery", "Delivered"
+  final String status; // "Placed", "Collecting", "Ready", "Complete", "Cancelled"
   final String recipient;
-  final String address;
-  final String? apartment; // Опционально: квартира/офис
-  final String deliveryTime;
+  final String shopAddress; // ✅ Переименовано: адрес магазина вместо адреса доставки
+  final String pickupTime; // ✅ Переименовано: время самовывоза
   final String payment;
-  final String? comment; // Опционально: комментарий курьеру
+  final String? sellerComment; // ✅ Добавлено
   final DateTime createdAt;
-  final DateTime? updatedAt; // Опционально: время обновления статуса
+  final DateTime? updatedAt;
 
   Order({
     required this.id,
     required this.userId,
+    this.shopId,
     required this.items,
     required this.total,
     required this.status,
     required this.recipient,
-    required this.address,
-    this.apartment,
-    required this.deliveryTime,
+    required this.shopAddress,
+    required this.pickupTime,
     required this.payment,
-    this.comment,
+    this.sellerComment,
     required this.createdAt,
-    this.updatedAt, required sellerComment,
+    this.updatedAt,
   });
 
   // ✅ Из Firestore в объект
@@ -39,20 +39,20 @@ class Order {
     return Order(
       id: doc.id,
       userId: data['userId'] ?? '',
+      shopId: data['shopId'],
       items: (data['items'] as List?)
           ?.map((item) => OrderItem.fromMap(item as Map<String, dynamic>))
           .toList() ??
           [],
       total: data['total'] ?? 0,
-      status: data['status'] ?? 'In progress',
+      status: data['status'] ?? 'Placed',
       recipient: data['recipient'] ?? '',
-      address: data['address'] ?? '',
-      apartment: data['apartment'],
-      deliveryTime: data['deliveryTime'] ?? '',
+      shopAddress: data['shopAddress'] ?? data['address'] ?? '', // Fallback на старое поле
+      pickupTime: data['pickupTime'] ?? data['deliveryTime'] ?? '',
       payment: data['payment'] ?? '',
-      comment: data['comment'],
+      sellerComment: data['sellerComment'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(), sellerComment: "",
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
   }
 
@@ -60,15 +60,15 @@ class Order {
   Map<String, dynamic> toFirestore() {
     return {
       'userId': userId,
+      'shopId': shopId,
       'items': items.map((item) => item.toMap()).toList(),
       'total': total,
       'status': status,
       'recipient': recipient,
-      'address': address,
-      'apartment': apartment,
-      'deliveryTime': deliveryTime,
+      'shopAddress': shopAddress,
+      'pickupTime': pickupTime,
       'payment': payment,
-      'comment': comment,
+      'sellerComment': sellerComment,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
     };
@@ -83,20 +83,16 @@ class Order {
   // ✅ Статус в виде текста для UI
   String get statusText {
     switch (status.toLowerCase()) {
-      case 'complete':
-        return 'Выполнен';
-      case 'in progress':
-        return 'В процессе';
-      case 'declined':
-        return 'Отклонен';
       case 'placed':
-        return 'Размещен';
+        return 'Оформлен';
       case 'collecting':
-        return 'Собирается';
-      case 'delivery':
-        return 'Доставляется';
-      case 'delivered':
-        return 'Доставлен';
+        return 'Сборка';
+      case 'ready':
+        return 'Готов к выдаче';
+      case 'complete':
+        return 'Получен';
+      case 'cancelled':
+        return 'Отменен';
       default:
         return status;
     }
@@ -106,14 +102,12 @@ class Order {
   String get statusColorHex {
     switch (status.toLowerCase()) {
       case 'complete':
-      case 'delivered':
         return '00C853'; // Зелёный
-      case 'in progress':
+      case 'ready':
+        return '2196F3'; // Синий
       case 'collecting':
-      case 'delivery':
       case 'placed':
         return 'FF9800'; // Оранжевый
-      case 'declined':
       case 'cancelled':
         return 'F44336'; // Красный
       default:
@@ -123,13 +117,13 @@ class Order {
 
   // ✅ Проверка, можно ли отменить заказ
   bool get canCancel {
-    final cancelStatuses = ['placed', 'in progress', 'collecting'];
+    final cancelStatuses = ['placed', 'collecting'];
     return cancelStatuses.contains(status.toLowerCase());
   }
 
   // ✅ Проверка, можно ли повторить заказ
   bool get canRepeat {
-    final repeatStatuses = ['complete', 'delivered'];
+    final repeatStatuses = ['complete'];
     return repeatStatuses.contains(status.toLowerCase());
   }
 }

@@ -30,8 +30,8 @@ void main() {
         total: 1000,
         status: 'placed',
         recipient: 'Recipient',
-        address: 'Test Address',
-        deliveryTime: '10:00',
+        shopAddress: 'Test Address',
+        pickupTime: '10:00',
         payment: 'Card',
         createdAt: DateTime.now(), sellerComment: null,
       );
@@ -52,8 +52,8 @@ void main() {
         'total': 1000,
         'status': 'placed',
         'recipient': 'Recipient',
-        'address': 'Address',
-        'deliveryTime': '10:00',
+        'shopAddress': 'Address',
+        'pickupTime': '10:00',
         'payment': 'Card',
         'createdAt': Timestamp.fromDate(now),
       });
@@ -63,8 +63,8 @@ void main() {
         'total': 1000,
         'status': 'placed',
         'recipient': 'Recipient',
-        'address': 'Address',
-        'deliveryTime': '10:00',
+        'shopAddress': 'Address',
+        'pickupTime': '10:00',
         'payment': 'Card',
         'createdAt': Timestamp.fromDate(now),
       });
@@ -79,10 +79,10 @@ void main() {
         'status': 'placed',
       });
 
-      await orderService.updateOrderStatus(docRef.id, 'delivered');
+      await orderService.updateOrderStatus(docRef.id, 'complete');
 
       final updatedDoc = await docRef.get();
-      expect(updatedDoc.data()!['status'], 'delivered');
+      expect(updatedDoc.data()!['status'], 'complete');
     });
   });
 }

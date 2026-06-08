@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/product.dart';
 import '../../services/language_service.dart';
 import '../../services/productService.dart';
+import '../../widgets/universal_image.dart';
 import 'productForm.dart';
 
 class ProductManagementScreen extends StatefulWidget {
@@ -87,15 +88,12 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> with 
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: product.images.isNotEmpty
-                ? Image.network(
-                    product.images.first,
-                    width: 60,
-                    height: 60,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                  )
-                : _buildPlaceholder(),
+            child: UniversalImage(
+              imagePath: product.images.isNotEmpty ? product.images.first : null,
+              width: 60,
+              height: 60,
+              fit: BoxFit.cover,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -126,15 +124,6 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> with 
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Container(
-      width: 60,
-      height: 60,
-      color: Colors.grey[200],
-      child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
     );
   }
 

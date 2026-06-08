@@ -656,7 +656,7 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> with LanguageSta
       final orders = await OrderService().getUserOrders();
       final active = orders.where((o) {
         final s = o.status.toLowerCase();
-        return s == 'placed' || s == 'collecting' || s == 'delivery';
+        return s == 'placed' || s == 'collecting' || s == 'ready';
       }).toList();
 
       if (mounted) {
@@ -676,7 +676,7 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> with LanguageSta
     switch (_activeOrder?.status.toLowerCase()) {
       case 'placed':     return t('status_placed');
       case 'collecting': return t('status_collecting');
-      case 'delivery':   return t('status_delivery');
+      case 'ready':      return t('status_ready');
       default:           return t('status_in_progress');
     }
   }
@@ -696,7 +696,7 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> with LanguageSta
           context,
           MaterialPageRoute(
             builder: (context) => OrderInProgressScreen(
-              orderNumber: '№${_activeOrder!.id}',
+              orderNumber: '№${_activeOrder!.id.substring(0, 8).toUpperCase()}',
               status:      _activeOrder!.status,
               orderId:     _activeOrder!.id,
             ),
@@ -732,7 +732,7 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> with LanguageSta
                 color: const Color(0xFFB07183),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Image.asset("assets/shopping_basket.png"),
+              child: const Icon(Icons.shopping_basket_outlined, color: Colors.white),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -748,9 +748,7 @@ class _ActiveOrderBannerState extends State<_ActiveOrderBanner> with LanguageSta
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    _activeOrder!.deliveryTime.isNotEmpty
-                        ? _activeOrder!.deliveryTime
-                        : t('delivery_today'),
+                    '${t('pickup_point')}: ${_activeOrder!.shopAddress}',
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

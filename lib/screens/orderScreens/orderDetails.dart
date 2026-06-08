@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../../models/address.dart';
 import '../../models/cartItem.dart';
 import '../../models/order.dart';
 import '../../models/orderItem.dart';
@@ -8,9 +7,7 @@ import '../../services/language_service.dart';
 import '../../services/notificationService.dart';
 import '../../services/orderService.dart';
 import '../../services/userService.dart';
-import '../../services/paymentService.dart'; // ✅ Импортируем сервис оплаты
-import '../savedAddresses.dart';
-import 'courierComment.dart';
+import '../../services/paymentService.dart';
 import 'orderInProgress.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
@@ -21,7 +18,8 @@ class OrderDetailsScreen extends StatefulWidget {
   const OrderDetailsScreen({
     super.key,
     required this.cartItems,
-    required this.total, required this.sellerComment,
+    required this.total,
+    this.sellerComment,
   });
 
   @override
@@ -30,16 +28,16 @@ class OrderDetailsScreen extends StatefulWidget {
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageStateMixin {
   // ✅ Состояния выбора
-  int _selectedDeliveryIndex = 0;
+  int _selectedPickupTimeIndex = 0;
+  DateTime? _selectedCustomDateTime;
   int _selectedPaymentIndex = 0;
-  String _courierComment = '';
-  Address? _selectedAddress;
   String _recipientName = '';
-  String _apartmentDetails = '';
+  String _shopAddress = 'пр. Мангилик Ел, 53, Астана'; // Заглушка адреса магазина
+  String? _shopId;
   bool _isLoading = true;
   bool _isPlacingOrder = false;
 
-  final PaymentService _paymentService = PaymentService(); // ✅ Инициализируем сервис
+  final PaymentService _paymentService = PaymentService();
 
   @override
   void initState() {
@@ -47,18 +45,73 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     _loadInitialData();
   }
 
-  // ✅ Загрузка начальных данных (адрес и имя пользователя)
+  Future<void> _selectDateTime() async {
+    final t = getTranslations();
+    final DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().add(const Duration(hours: 1)),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 14)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFFB07183),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (pickedDate != null) {
+      if (!mounted) return;
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+        builder: (context, child) {
+          return Theme(
+            data: Theme.of(context).copyWith(
+              colorScheme: const ColorScheme.light(
+                primary: Color(0xFFB07183),
+                onPrimary: Colors.white,
+                onSurface: Colors.black,
+              ),
+            ),
+            child: child!,
+          );
+        },
+      );
+
+      if (pickedTime != null) {
+        setState(() {
+          _selectedCustomDateTime = DateTime(
+            pickedDate.year,
+            pickedDate.month,
+            pickedDate.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          _selectedPickupTimeIndex = 1;
+        });
+      }
+    }
+  }
+
   Future<void> _loadInitialData() async {
     setState(() => _isLoading = true);
     try {
       final user = await UserService().getCurrentUser();
-      final addresses = user?.addresses ?? [];
-      final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.firstOrNull;
       
+      if (widget.cartItems.isNotEmpty) {
+        final firstItem = widget.cartItems.first;
+        _shopId = firstItem.productId.split('_').first;
+      }
+
       setState(() {
-        _selectedAddress = defaultAddr;
         _recipientName = user?.name ?? user?.email.split('@').first ?? '';
-        _apartmentDetails = defaultAddr?.apartment ?? '';
         _isLoading = false;
       });
     } catch (e) {
@@ -66,46 +119,37 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     }
   }
 
-  // ✅ Выбор нового адреса
-  Future<void> _pickAddress() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SavedAddressesScreen()),
-    );
-    // Обновляем данные после выбора
-    final addresses = await UserService().getAddresses();
-    final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.firstOrNull;
-    
-    setState(() {
-      _selectedAddress = defaultAddr;
-      if (defaultAddr != null) {
-        _apartmentDetails = defaultAddr.apartment ?? '';
-      }
-    });
-  }
-
-  // ✅ Редактирование текстового поля (Получатель или Квартира)
-  void _editTextField(String title, String initialValue, Function(String) onSave) {
+  void _editRecipientName() {
     final t = getTranslations();
-    final controller = TextEditingController(text: initialValue);
+    final controller = TextEditingController(text: _recipientName);
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: InputDecoration(
-            hintText: t('enter_email_hint'),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(t('recipient'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        content: SizedBox(
+          width: MediaQuery.of(context).size.width,
+          child: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: t('no_name'),
+              filled: true,
+              fillColor: Colors.grey[100],
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+            ),
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: Text(t('cancel'))),
           ElevatedButton(
             onPressed: () {
-              onSave(controller.text.trim());
+              setState(() => _recipientName = controller.text.trim());
               Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB07183), foregroundColor: Colors.white),
@@ -116,39 +160,25 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-  // ✅ Подсчёт итоговой суммы с учетом доставки
-  int _calculateFinalTotal(List<Map<String, dynamic>> deliveryOptions) {
-    final deliveryPrice = deliveryOptions[_selectedDeliveryIndex]['priceValue'] as int;
-    return widget.total + deliveryPrice;
-  }
-
   @override
   Widget build(BuildContext context) {
     final t = getTranslations();
     
-    // Данные доставки
-    final List<Map<String, dynamic>> deliveryOptions = [
+    final String customTimeDisplay = _selectedCustomDateTime != null
+        ? "${_selectedCustomDateTime!.day.toString().padLeft(2, '0')}.${_selectedCustomDateTime!.month.toString().padLeft(2, '0')} ${_selectedCustomDateTime!.hour.toString().padLeft(2, '0')}:${_selectedCustomDateTime!.minute.toString().padLeft(2, '0')}"
+        : t('choose_date_time');
+
+    final List<Map<String, dynamic>> pickupTimeOptions = [
       {
         'title': t('faster_delivery'),
-        'subtitle': t('delivery_time_subtitle'),
-        'price': '0 ₸',
-        'priceValue': 0,
+        'subtitle': 'через 30-40 мин.',
       },
       {
         'title': t('another_time'),
-        'subtitle': t('choose_date_time'),
-        'price': '500 ₸',
-        'priceValue': 500,
-      },
-      {
-        'title': t('express_delivery'),
-        'subtitle': 'в течение 30 мин.',
-        'price': '1500 ₸',
-        'priceValue': 1500,
+        'subtitle': customTimeDisplay,
       },
     ];
 
-    // Данные оплаты
     final List<Map<String, dynamic>> paymentOptions = [
       {
         'title': t('bank_card'),
@@ -160,14 +190,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
         'subtitle': t('pay_now'),
         'method': PaymentMethod.kaspi,
       },
-      {
-        'title': t('upon_receipt'),
-        'subtitle': t('payment_receipt'),
-        'method': PaymentMethod.cash,
-      },
     ];
-
-    final int finalTotal = _calculateFinalTotal(deliveryOptions);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -199,11 +222,12 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildInfoSection(t),
+                            _buildPickupInfoSection(t),
                             const SizedBox(height: 24),
-                            _buildDeliverySection(t, deliveryOptions),
+                            _buildPickupTimeSection(t, pickupTimeOptions),
                             const SizedBox(height: 24),
-                            _buildImportantDetailsSection(t),
+                            if (widget.sellerComment != null && widget.sellerComment!.isNotEmpty)
+                              _buildCommentPreview(t),
                             const SizedBox(height: 24),
                             _buildPaymentSection(t, paymentOptions),
                             const SizedBox(height: 120),
@@ -211,7 +235,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                         ),
                       ),
                     ),
-                    _buildBottomSection(context, t, deliveryOptions, paymentOptions, finalTotal),
+                    _buildBottomSection(context, t, pickupTimeOptions, paymentOptions, widget.total),
                   ],
                 ),
                 if (_isPlacingOrder)
@@ -226,41 +250,27 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-  Widget _buildInfoSection(AppTranslations t) {
+  Widget _buildPickupInfoSection(AppTranslations t) {
     return Column(
       children: [
         _buildInfoRow(
           t('recipient'), 
           _recipientName.isEmpty ? t('unknown') : _recipientName,
-          isAddable: true,
-          onTap: () => _editTextField(t('recipient'), _recipientName, (val) => setState(() => _recipientName = val)),
+          isEditable: true,
+          onTap: _editRecipientName,
         ),
         const Divider(height: 1),
         _buildInfoRow(
-          t('address'),
-          _selectedAddress?.street ?? t('addAddress'),
-          isAddable: true,
-          onTap: _pickAddress,
-        ),
-        const Divider(height: 1),
-        _buildInfoRow(
-          t('apt_office_floor_entrance'),
-          _apartmentDetails.isEmpty ? t('apt_office_floor_entrance_hint') : _apartmentDetails,
-          isAddable: true,
-          onTap: () => _editTextField(t('apt_office_floor_entrance'), _apartmentDetails, (val) => setState(() => _apartmentDetails = val)),
-        ),
-        const Divider(height: 1),
-        _buildInfoRow(
-          t('courierComment'),
-          _courierComment.isEmpty ? t('addComment') : _courierComment,
-          isAddable: true,
-          onTap: _showCourierComment,
+          t('pickup_point'),
+          _shopAddress,
+          isEditable: false,
+          onTap: null, 
         ),
       ],
     );
   }
 
-  Widget _buildInfoRow(String label, String value, {bool isAddable = false, VoidCallback? onTap}) {
+  Widget _buildInfoRow(String label, String value, {bool isEditable = false, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -271,10 +281,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
             ),
             Row(
               children: [
@@ -282,12 +289,14 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                   value,
                   style: TextStyle(
                     fontSize: 15,
-                    color: isAddable ? const Color(0xFFB07183) : Colors.black,
-                    fontWeight: isAddable ? FontWeight.w600 : FontWeight.w500,
+                    color: isEditable ? const Color(0xFFB07183) : Colors.black,
+                    fontWeight: isEditable ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                if (isEditable) ...[
+                  const SizedBox(width: 4),
+                  const Icon(Icons.edit_outlined, size: 16, color: Color(0xFFB07183)),
+                ],
               ],
             ),
           ],
@@ -296,300 +305,64 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-  void _showCourierComment() async {
-    final result = await showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) => const CourierCommentSheet(),
-    );
-
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        _courierComment = result;
-      });
-    }
-  }
-
-  Widget _buildDeliverySection(AppTranslations t, List<Map<String, dynamic>> deliveryOptions) {
+  Widget _buildCommentPreview(AppTranslations t) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                t('delivery'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, size: 16),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: deliveryOptions.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final option = deliveryOptions[index];
-                final isSelected = index == _selectedDeliveryIndex;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      _selectedDeliveryIndex = index;
-                    });
-                  },
-                  child: Container(
-                    width: 160,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFFB07183).withValues(alpha: 0.1)
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFFB07183)
-                            : Colors.grey[300]!,
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                option['title']!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected
-                                      ? const Color(0xFFB07183)
-                                      : Colors.black87,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFB07183)
-                                    : Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFFB07183)
-                                      : Colors.grey[400]!,
-                                ),
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                Icons.check,
-                                size: 14,
-                                color: Colors.white,
-                              )
-                                  : null,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          option['subtitle']!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                        if (option['price']!.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            option['price']!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImportantDetailsSection(AppTranslations t) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                t('important_details'),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              Row(
-                children: [
-                  Text(
-                    t('select_label'),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right, size: 16),
-                ],
-              ),
-            ],
-          ),
+          Text(t('commentSeller'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
-          Text(
-            t('important_details_hint'),
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-            ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+            child: Text(widget.sellerComment!, style: const TextStyle(fontSize: 14, color: Colors.black87)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPaymentSection(AppTranslations t, List<Map<String, dynamic>> paymentOptions) {
+  Widget _buildPickupTimeSection(AppTranslations t, List<Map<String, dynamic>> options) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            t('payment'),
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(t('pickup_time'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           const SizedBox(height: 12),
           SizedBox(
             height: 100,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              itemCount: paymentOptions.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemCount: options.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final option = paymentOptions[index];
-                final isSelected = index == _selectedPaymentIndex;
-
+                final option = options[index];
+                final isSelected = index == _selectedPickupTimeIndex;
                 return GestureDetector(
                   onTap: () {
-                    setState(() {
-                      _selectedPaymentIndex = index;
-                    });
+                    if (index == 1) {
+                      _selectDateTime();
+                    } else {
+                      setState(() => _selectedPickupTimeIndex = index);
+                    }
                   },
                   child: Container(
                     width: 160,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isSelected
-                          ? const Color(0xFFB07183).withValues(alpha: 0.1)
-                          : Colors.white,
+                      color: isSelected ? const Color(0xFFB07183).withValues(alpha: 0.1) : Colors.white,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected
-                            ? const Color(0xFFB07183)
-                            : Colors.grey[300]!,
-                        width: 1.5,
-                      ),
+                      border: Border.all(color: isSelected ? const Color(0xFFB07183) : Colors.grey[300]!, width: 1.5),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                option['title']!,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected
-                                      ? const Color(0xFFB07183)
-                                      : Colors.black87,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFFB07183)
-                                    : Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFFB07183)
-                                      : Colors.grey[400]!,
-                                ),
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                Icons.check,
-                                size: 14,
-                                color: Colors.white,
-                              )
-                                  : null,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          option['subtitle']!,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
+                        Text(option['title']!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? const Color(0xFFB07183) : Colors.black87)),
+                        const SizedBox(height: 4),
+                        Text(option['subtitle']!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                       ],
                     ),
                   ),
@@ -602,18 +375,54 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
     );
   }
 
-  Future<void> _placeOrder(AppTranslations t, List<Map<String, dynamic>> deliveryOptions, List<Map<String, dynamic>> paymentOptions, int finalTotal) async {
-    if (_selectedAddress == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t('addAddress')), backgroundColor: Colors.orange),
-      );
-      return;
-    }
+  Widget _buildPaymentSection(AppTranslations t, List<Map<String, dynamic>> options) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t('payment'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 100,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: options.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final option = options[index];
+                final isSelected = index == _selectedPaymentIndex;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedPaymentIndex = index),
+                  child: Container(
+                    width: 160,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFFB07183).withValues(alpha: 0.1) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSelected ? const Color(0xFFB07183) : Colors.grey[300]!, width: 1.5),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(option['title']!, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isSelected ? const Color(0xFFB07183) : Colors.black87)),
+                        const SizedBox(height: 4),
+                        Text(option['subtitle']!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Future<void> _placeOrder(AppTranslations t, List<Map<String, dynamic>> pickupOptions, List<Map<String, dynamic>> paymentOptions, int total) async {
     if (_recipientName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(t('recipient')), backgroundColor: Colors.orange),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('recipient')), backgroundColor: Colors.orange));
       return;
     }
 
@@ -623,21 +432,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
       final userId = FirebaseAuth.instance.currentUser?.uid;
       if (userId == null) return;
 
-      // ✅ 1. Обработка платежа
       final paymentMethod = paymentOptions[_selectedPaymentIndex]['method'] as PaymentMethod;
-      final paymentResult = await _paymentService.processPayment(
-        method: paymentMethod,
-        amount: finalTotal,
-      );
+      final paymentResult = await _paymentService.processPayment(method: paymentMethod, amount: total);
 
-      if (!paymentResult.success) {
-        throw Exception(paymentResult.message ?? t('general_error'));
-      }
+      if (!paymentResult.success) throw Exception(paymentResult.message ?? t('general_error'));
 
-      // ✅ 2. Создание заказа
       final order = Order(
         id: '',
         userId: userId,
+        shopId: _shopId,
         items: widget.cartItems.map((item) => OrderItem(
           productId: item.productId,
           name: item.name,
@@ -645,15 +448,13 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
           quantity: item.quantity,
           image: item.image,
         )).toList(),
-        total: finalTotal,
+        total: total,
         status: 'placed',
         recipient: _recipientName,
-        address: _selectedAddress!.street,
-        apartment: _apartmentDetails,
-        deliveryTime: deliveryOptions[_selectedDeliveryIndex]['subtitle']!,
+        shopAddress: _shopAddress,
+        pickupTime: pickupOptions[_selectedPickupTimeIndex]['subtitle']!,
         payment: paymentOptions[_selectedPaymentIndex]['title']!,
-        comment: _courierComment.isEmpty ? null : _courierComment,
-        sellerComment: widget.sellerComment, // ✅ Передаем комментарий продавцу
+        sellerComment: widget.sellerComment,
         createdAt: DateTime.now(),
       );
 
@@ -676,60 +477,34 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
               status: 'placed',
             ),
           ),
-              (route) => route.isFirst,
+          (route) => route.isFirst,
         );
       }
     } catch (e) {
       print('❌ Error placing order: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red));
     } finally {
       if (mounted) setState(() => _isPlacingOrder = false);
     }
   }
 
-  Widget _buildBottomSection(BuildContext context, AppTranslations t, List<Map<String, dynamic>> deliveryOptions, List<Map<String, dynamic>> paymentOptions, int finalTotal) {
+  Widget _buildBottomSection(BuildContext context, AppTranslations t, List<Map<String, dynamic>> pickupOptions, List<Map<String, dynamic>> paymentOptions, int total) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
+      decoration: BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -2))]),
       child: SafeArea(
         child: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  t('total'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  '$finalTotal ₸',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                Text(t('total'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                Text('$total ₸', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               ],
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _isPlacingOrder ? null : () => _placeOrder(t, deliveryOptions, paymentOptions, finalTotal),
+              onPressed: _isPlacingOrder ? null : () => _placeOrder(t, pickupOptions, paymentOptions, total),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFB07183),
                 foregroundColor: Colors.white,
@@ -738,15 +513,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> with LanguageSt
                 minimumSize: const Size(double.infinity, 50),
               ),
               child: _isPlacingOrder
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                    )
-                  : Text(
-                      '${t('payOrder')}  $finalTotal ₸',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('${t('payOrder')}  $total ₸', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ],
         ),

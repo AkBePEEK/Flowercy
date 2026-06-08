@@ -7,6 +7,8 @@ import '../../services/productService.dart';
 import '../../services/shopService.dart';
 import '../../services/userService.dart';
 import '../../widgets/universal_image.dart';
+import '../categoryScreens/productDetail.dart';
+import '../categoryScreens/shopDetail.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -279,74 +281,83 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
 
   // Элемент букета (из модели Product)
   Widget _buildBouquetItem(Product product) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          // Изображение
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: UniversalImage(
-                imagePath: product.images.isNotEmpty ? product.images.first : null,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(Icons.local_florist, color: Colors.grey);
-                },
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ProductDetailScreen(productId: product.id),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            // Изображение
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: UniversalImage(
+                  imagePath: product.images.isNotEmpty ? product.images.first : null,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return const Icon(Icons.local_florist, color: Colors.grey);
+                  },
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Информация
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.formattedPrice, // ✅ "42480 ₸"
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  product.name,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  product.description,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600], height: 1.3),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            const SizedBox(width: 12),
+            // Информация
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product.formattedPrice, // ✅ "42480 ₸"
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    product.name,
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    product.description,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600], height: 1.3),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Сердечко (удалить из избранного)
-          GestureDetector(
-            onTap: () => _removeFromFavorites(product.id, product.name),
-            child: const Icon(
-              Icons.favorite, // ✅ Заполненное = в избранном
-              color: Color(0xFFB07183),
-              size: 24,
+            const SizedBox(width: 8),
+            // Сердечко (удалить из избранного)
+            GestureDetector(
+              onTap: () => _removeFromFavorites(product.id, product.name),
+              child: const Icon(
+                Icons.favorite, // ✅ Заполненное = в избранном
+                color: Color(0xFFB07183),
+                size: 24,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
-
   // Вкладка с магазинами
   Widget _buildMarketsTab() {
     final t = getTranslations();
@@ -378,108 +389,118 @@ class _FavoritesScreenState extends State<FavoritesScreen> with SingleTickerProv
   // Элемент магазина (из модели Shop)
   Widget _buildMarketItem(Shop shop) {
     final t = getTranslations();
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          // Изображение
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: UniversalImage(
-                imagePath: shop.image,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.store, color: Colors.grey),
-                  );
-                },
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ShopDetailScreen(shopId: shop.id),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            // Изображение
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: UniversalImage(
+                  imagePath: shop.image,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color: Colors.grey[300],
+                      child: const Icon(Icons.store, color: Colors.grey),
+                    );
+                  },
+                ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Информация
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  shop.name,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.star, color: Colors.amber, size: 16),
-                    const SizedBox(width: 4),
-                    Text('${shop.rating}/5 ${t('rating')}', style: const TextStyle(fontSize: 13)),
-                    const SizedBox(width: 8),
-                    const Text('•', style: TextStyle(fontSize: 12)),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.chat_bubble_outline, size: 14),
-                    const SizedBox(width: 4),
-                    Text('${shop.reviews} ${t('review')}', style: const TextStyle(fontSize: 13)),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: [
-                    if (shop.discount != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.green[50],
-                          borderRadius: BorderRadius.circular(4),
+            const SizedBox(width: 12),
+            // Информация
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    shop.name,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${shop.rating}/5 ${t('rating')}', style: const TextStyle(fontSize: 13)),
+                      const SizedBox(width: 8),
+                      const Text('•', style: TextStyle(fontSize: 12)),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.chat_bubble_outline, size: 14),
+                      const SizedBox(width: 4),
+                      Text('${shop.reviews} ${t('review')}', style: const TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      if (shop.discount != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            shop.discount!,
+                            style: TextStyle(fontSize: 11, color: Colors.green[700], fontWeight: FontWeight.w500),
+                          ),
                         ),
-                        child: Text(
-                          shop.discount!,
-                          style: TextStyle(fontSize: 11, color: Colors.green[700], fontWeight: FontWeight.w500),
+                      if (shop.freeDelivery)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.pink[50],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            t('free_delivery'),
+                            style: TextStyle(fontSize: 11, color: Colors.pink[700], fontWeight: FontWeight.w500),
+                          ),
                         ),
-                      ),
-                    if (shop.freeDelivery)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.pink[50],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          t('free_delivery'),
-                          style: TextStyle(fontSize: 11, color: Colors.pink[700], fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          // Сердечко (для магазинов можно добавить отдельное избранное)
-          GestureDetector(
-            onTap: () async {
-              await _userService.removeShopFromFavorites(shop.id);
-              _loadFavorites();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${shop.name} ${t('removed_from_favorites')}')),
-              );
-            },
-            child: const Icon(Icons.favorite, color: Color(0xFFB07183), size: 24),
-          ),
-        ],
+            const SizedBox(width: 8),
+            // Сердечко (для магазинов можно добавить отдельное избранное)
+            GestureDetector(
+              onTap: () async {
+                await _userService.removeShopFromFavorites(shop.id);
+                _loadFavorites();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${shop.name} ${t('removed_from_favorites')}')),
+                );
+              },
+              child: const Icon(Icons.favorite, color: Color(0xFFB07183), size: 24),
+            ),
+          ],
+        ),
       ),
     );
   }

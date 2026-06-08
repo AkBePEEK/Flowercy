@@ -17,8 +17,8 @@ void main() {
         'total': 2000,
         'status': 'Placed',
         'recipient': 'Alice',
-        'address': 'Street 1',
-        'deliveryTime': '10:00',
+        'shopAddress': 'Street 1',
+        'pickupTime': '10:00',
         'payment': 'Card',
         'createdAt': Timestamp.fromDate(now),
       };
@@ -45,8 +45,8 @@ void main() {
         total: 2000,
         status: 'Placed',
         recipient: 'Alice',
-        address: 'Street 1',
-        deliveryTime: '10:00',
+        shopAddress: 'Street 1',
+        pickupTime: '10:00',
         payment: 'Card',
         createdAt: now, sellerComment: null,
       );
@@ -71,15 +71,15 @@ void main() {
         total: 3500,
         status: 'Complete',
         recipient: 'Alice',
-        address: 'Street 1',
-        deliveryTime: '10:00',
+        shopAddress: 'Street 1',
+        pickupTime: '10:00',
         payment: 'Card',
         createdAt: DateTime.now(), sellerComment: null,
       );
 
       expect(order.formattedTotal, '3500 ₸');
       expect(order.itemsCount, 3);
-      expect(order.statusText, 'Выполнен');
+      expect(order.statusText, 'Получен');
       expect(order.statusColorHex, '00C853');
       expect(order.canCancel, false);
       expect(order.canRepeat, true);

@@ -1,10 +1,10 @@
+import 'package:flowery_app/screens/orderScreens/orderComplete.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/order.dart' as local;
 import '../../services/language_service.dart';
 import '../../services/orderService.dart';
-import 'orderComplete.dart';
 
 class OrderInProgressScreen extends StatefulWidget {
   final String orderNumber;
@@ -28,23 +28,41 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
   Map<String, dynamic> _getStatusData(AppTranslations t, String currentStatus) {
     switch (currentStatus.toLowerCase()) {
       case 'placed':
-        return {'icon': 'assets/orderStatus/placed.png',
-          'title': t('order_status_placed'), 'completedSteps': 1};
+        return {
+          'icon': 'assets/orderStatus/placed.png',
+          'title': t('order_status_placed'),
+          'completedSteps': 1
+        };
       case 'collecting':
-        return {'icon': 'assets/orderStatus/collecting.png',
-          'title': t('order_status_collecting'), 'completedSteps': 2};
-      case 'delivery':
-        return {'icon': 'assets/orderStatus/delivery.png',
-          'title': t('order_status_delivery'), 'completedSteps': 3};
-      case 'delivered':
-        return {'icon': 'assets/orderStatus/delivered.png',
-          'title': t('order_status_delivered'), 'completedSteps': 4};
+        return {
+          'icon': 'assets/orderStatus/collecting.png',
+          'title': t('order_status_collecting'),
+          'completedSteps': 2
+        };
+      case 'ready':
+        return {
+          'icon': 'assets/orderStatus/delivered.png',
+          'title': t('order_status_ready'),
+          'completedSteps': 3
+        };
+      case 'complete':
+        return {
+          'icon': 'assets/orderStatus/delivered.png',
+          'title': t('status_complete'),
+          'completedSteps': 4
+        };
       case 'cancelled':
-        return {'icon': 'assets/orderStatus/placed.png', // Or a dedicated cancelled icon
-          'title': t('order_cancelled_msg'), 'completedSteps': 0};
+        return {
+          'icon': 'assets/orderStatus/placed.png',
+          'title': t('order_cancelled_msg'),
+          'completedSteps': 0
+        };
       default:
-        return {'icon': 'assets/orderStatus/placed.png',
-          'title': t('order_status_placed'), 'completedSteps': 1};
+        return {
+          'icon': 'assets/orderStatus/placed.png',
+          'title': t('order_status_placed'),
+          'completedSteps': 1
+        };
     }
   }
 
@@ -57,7 +75,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
         await OrderService().updateOrderStatus(widget.orderId, 'cancelled');
       }
       if (mounted) {
-        Navigator.pop(context); // вернуться назад
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(t('order_cancelled_msg')),
@@ -90,7 +108,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context); // закрыть диалог
+              Navigator.pop(context);
               _cancelOrder();
             },
             style: ElevatedButton.styleFrom(
@@ -104,7 +122,6 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
     );
   }
 
-  // Support — открываем телефон/чат (заглушка)
   void _openSupport() {
     final t = getTranslations();
     showModalBottomSheet(
@@ -138,20 +155,14 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
     );
   }
 
-  // ✅ Открыть WhatsApp чат с курьером
-  Future<void> _launchWhatsApp() async {
+  Future<void> _openMap(String address) async {
     final t = getTranslations();
-    const phone = "+77777777777"; // Заглушка номера курьера
-    final message = "${t('home')}! Я по поводу заказа №${widget.orderId}";
-    final url = "https://wa.me/$phone?text=${Uri.encodeComponent(message)}";
-    
+    final url = "https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(address)}";
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(t('error'))),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t('error'))));
       }
     }
   }
@@ -229,21 +240,67 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
                         const SizedBox(height: 60),
                         _buildProgressTracker(statusData['completedSteps']),
                         const SizedBox(height: 60),
-                        // ✅ Support, Chat and Details — теперь рабочие
+                        
+                        if (order != null)
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[200]!),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.store, color: Color(0xFFB07183), size: 20),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(t('pickup_point'), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                          Text(order.shopAddress, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const Divider(height: 24),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.access_time, color: Color(0xFFB07183), size: 20),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(t('pickup_time'), style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                          Text(order.pickupTime, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        
+                        const SizedBox(height: 40),
+                        
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildActionButton(
+                              icon: Icons.map_outlined,
+                              label: t('view_on_map'),
+                              onTap: () => _openMap(order?.shopAddress ?? ''),
+                            ),
+                            const SizedBox(width: 12),
+                            _buildActionButton(
                               icon: Icons.headset_mic,
                               label: t('support'),
                               onTap: _openSupport,
-                            ),
-                            const SizedBox(width: 12),
-                            // ✅ НОВАЯ КНОПКА: Чат с курьером
-                            _buildActionButton(
-                              icon: Icons.chat_outlined,
-                              label: t('chat_courier'),
-                              onTap: _launchWhatsApp,
                             ),
                             const SizedBox(width: 12),
                             _buildActionButton(
@@ -262,7 +319,7 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
                   ),
                 ),
               ),
-              if (currentStatus.toLowerCase() != 'delivered' && currentStatus.toLowerCase() != 'cancelled')
+              if (currentStatus.toLowerCase() != 'complete' && currentStatus.toLowerCase() != 'ready' && currentStatus.toLowerCase() != 'cancelled')
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -313,105 +370,68 @@ class _OrderInProgressScreenState extends State<OrderInProgressScreen> with Lang
     );
   }
 
-
-  // ✅ Трекер прогресса с динамическими шагами
   Widget _buildProgressTracker(int completedSteps) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Шаг 1: Заказ размещен
         _buildProgressStep(
           icon: Icons.check,
-          isCompleted: completedSteps >= 1, image: '',
+          isCompleted: completedSteps >= 1,
         ),
-        // Линия
         Expanded(
           child: Container(
             height: 2,
-            color: completedSteps >= 2
-                ? const Color(0xFFB07183)
-                : Colors.grey[300],
-            margin: const EdgeInsets.only(bottom: 15),
+            color: completedSteps >= 2 ? const Color(0xFFB07183) : Colors.grey[300],
+            margin: const EdgeInsets.only(bottom: 0),
           ),
         ),
-        // Шаг 2: Собирается
         _buildProgressStep(
-          image: 'assets/shopping_basket.png',
+          icon: Icons.shopping_basket_outlined,
           isCompleted: completedSteps >= 2,
         ),
-        // Линия
         Expanded(
           child: Container(
             height: 2,
-            color: completedSteps >= 3
-                ? const Color(0xFFB07183)
-                : Colors.grey[300],
-            margin: const EdgeInsets.only(bottom: 15),
+            color: completedSteps >= 3 ? const Color(0xFFB07183) : Colors.grey[300],
+            margin: const EdgeInsets.only(bottom: 0),
           ),
         ),
-        // Шаг 3: Доставка
         _buildProgressStep(
-          icon: Icons.directions_car_filled_outlined,
-          isCompleted: completedSteps >= 3, image: '',
+          icon: Icons.card_giftcard,
+          isCompleted: completedSteps >= 3,
         ),
-        // Линия
         Expanded(
           child: Container(
             height: 2,
-            color: completedSteps >= 4
-                ? const Color(0xFFB07183)
-                : Colors.grey[300],
-            margin: const EdgeInsets.only(bottom: 15),
+            color: completedSteps >= 4 ? const Color(0xFFB07183) : Colors.grey[300],
+            margin: const EdgeInsets.only(bottom: 0),
           ),
         ),
-        // Шаг 4: Доставлен
         _buildProgressStep(
           icon: Icons.flag_outlined,
-          isCompleted: completedSteps >= 4, image: '',
+          isCompleted: completedSteps >= 4,
         ),
       ],
     );
   }
 
-  // ✅ Шаг прогресса
-  Widget _buildProgressStep({
-    required String image,
-    required bool isCompleted,
-    IconData? icon
-  })
-  {
+  Widget _buildProgressStep({required bool isCompleted, IconData? icon}) {
     return Container(
-      width: 50,
-      height: 50,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         color: isCompleted ? const Color(0xFFB07183) : Colors.grey[300]!,
-        shape: BoxShape.rectangle,
-        borderRadius: BorderRadius.circular(16),
+        shape: BoxShape.circle,
       ),
-      child: Image.asset(
-        image,
-        width: 24,
-        height: 24,
+      child: Icon(
+        icon,
         color: isCompleted ? Colors.white : const Color(0xFFC8C8C8),
-        errorBuilder: (context, error, stackTrace) {
-          // Fallback на иконку если изображение не найдено
-          return Icon(
-            icon,
-            color: isCompleted ? Colors.white : const Color(0xFFC8C8C8),
-            size: 32,
-          );
-        },
+        size: 20,
       ),
     );
   }
 
-  // Кнопка действия
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  })
-  {
+  Widget _buildActionButton({required IconData icon, required String label, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Column(
