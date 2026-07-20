@@ -1,17 +1,49 @@
-# flowery_app
+# 🌸 Flowercy
 
-A new Flutter project.
+A modern, cross-platform flower delivery mobile application built with **Flutter** & **Dart**.
 
-## Getting Started
+![Flutter](https://img.shields.io/badge/Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)
+![Dart](https://img.shields.io/badge/Dart-0075BA?style=for-the-badge&logo=dart&logoColor=white)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS-000000?style=for-the-badge&logo=apple&logoColor=white)
 
-This project is a starting point for a Flutter application.
+---
 
-A few resources to get you started if this is your first Flutter project:
+## 🌟 Features
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- 💐 **Interactive Bouquet Catalog**: Browse curated flower arrangements and customizable gift sets.
+- 🛒 **Seamless Ordering Flow**: Intuitive shopping cart, address selection, and scheduled delivery times.
+- 🎨 **Modern Custom UI**: Smooth animations, glassmorphism elements, and responsive mobile layouts.
+- 📱 **Cross-Platform**: Fully compatible with Android and iOS devices.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (v3.0+)
+- Android Studio / Xcode
+
+### Setup & Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/AkBePEEK/Flowercy.git
+   cd Flowercy
+   ```
+
+2. **Get Flutter packages:**
+   ```bash
+   flutter pub get
+   ```
+
+3. **Run the app:**
+   ```bash
+   flutter run
+   ```
+
+---
+
+## 📱 Tech Stack
+- **Framework**: Flutter
+- **Language**: Dart
